@@ -143,6 +143,8 @@ select {
 
 .primary-panel,
 .schedule-panel,
+.detail-panel,
+.settings-panel,
 .alternate-band {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -154,6 +156,16 @@ select {
 }
 
 .schedule-panel {
+  padding: 18px;
+}
+
+.side-stack {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.detail-panel {
   padding: 18px;
 }
 
@@ -265,6 +277,7 @@ button:hover {
 }
 
 button:focus-visible,
+input:focus-visible,
 select:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
@@ -315,6 +328,108 @@ select:focus-visible {
   padding: 18px;
 }
 
+.settings-band {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  padding: 0 32px 22px;
+}
+
+.settings-panel {
+  padding: 18px;
+}
+
+.child-list {
+  display: grid;
+  gap: 10px;
+}
+
+.child-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 90px auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.child-row label,
+.field {
+  display: grid;
+}
+
+.child-row label span {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.supply-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.check-tile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: var(--subtle);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.check-tile input {
+  width: 16px;
+  min-height: 16px;
+  flex: 0 0 auto;
+}
+
+.check-tile span {
+  overflow-wrap: anywhere;
+}
+
+.detail-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.detail-list div {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.detail-list dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.detail-list dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
 .activity-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -361,6 +476,7 @@ select:focus-visible {
 
   .control-band,
   .workspace,
+  .settings-band,
   .activity-grid {
     grid-template-columns: 1fr;
   }
@@ -400,5 +516,10 @@ select:focus-visible {
   .card-footer button {
     width: 100%;
     margin-left: 0;
+  }
+
+  .child-row,
+  .supply-grid {
+    grid-template-columns: 1fr;
   }
 }

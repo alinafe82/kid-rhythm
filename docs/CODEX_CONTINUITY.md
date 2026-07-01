@@ -81,7 +81,7 @@ If context gets compacted, the essential summary should include:
 Suggested compact summary:
 
 ```text
-Project: /Users/alinafe/Projects/personal/family-rhythm
+Project: /Users/alinafe/src/family-rhythm
 Read first: AGENTS.md, docs/TASK_LOG.md, docs/PROJECT_PLAN.md
 Current phase: <phase>
 Active task: <task>
@@ -95,7 +95,7 @@ Next step: <single next action>
 Use a persistent goal for multi-step implementation work. Good goal text:
 
 ```text
-Build the Family Rhythm MVP vertical slice: a local-first web app where a parent can view a Today screen, get a deterministic activity recommendation from seed data, schedule it into a flexible block, provide feedback, and see the recommendation adapt. Done when the app runs locally, core domain logic has tests, and docs/TASK_LOG.md is updated.
+Build the KidRhythm MVP vertical slice: a local-first web app where a parent can view a Today screen, get a deterministic activity recommendation from seed data, schedule it into a flexible block, provide feedback, and see the recommendation adapt. Done when the app runs locally, core domain logic has tests, and docs/TASK_LOG.md is updated.
 ```
 
 Do not use a broad goal like "build the app." The goal should include completion criteria.
@@ -133,4 +133,3 @@ Before accepting a Codex-generated feature, check:
 - Is there a realistic empty state?
 
 If the answer is no, fix the underlying product or engineering issue before polishing.
-

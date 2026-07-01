@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Status: first MVP vertical slice implemented.
+Status: product positioning pivoting to KidRhythm and whole-child routines.
 
 Project path:
 
@@ -12,11 +12,11 @@ Project path:
 
 ## Active Task
 
-Next task: add local persistence and custom household setup so the Today view uses editable data instead of demo fixtures.
+Next task: reshape the product model and UI around whole-child signals, then decide whether to rename the GitHub repo/local folder.
 
 ## Completed
 
-- Defined the product as a family rhythm and activity scheduling tool.
+- Defined the product as a parent-controlled child rhythm and activity tool.
 - Created project documentation.
 - Added durable Codex instructions in `AGENTS.md`.
 - Added a detailed product and build plan in `docs/PROJECT_PLAN.md`.
@@ -29,6 +29,17 @@ Next task: add local persistence and custom household setup so the Today view us
 - Added Vitest tests for recommendation and schedule behavior.
 - Removed unused SVG starter assets and replaced the default favicon.
 - Initialized local git repository and pushed to a private GitHub repo.
+- Added typed local persistence for household, schedule, feedback, and recent activity state.
+- Added editable children and supply controls.
+- Added an activity detail panel with schedule/block controls.
+- Added PWA manifest and production service worker registration.
+- Added Tauri desktop wrapper and app-only macOS build script.
+- Built unsigned local macOS app bundle at `src-tauri/target/release/bundle/macos/KidRhythm.app`.
+- Added `docs/MACOS_APP.md` for build, DMG, signing, and notarization notes.
+- Recorded product pivot: understanding the whole child is how the app tailors better routines.
+- Adopted `KidRhythm` as the working product name.
+- Set `getkidrhythm.com` as the domain target based on current RDAP availability check.
+- Rebuilt the unsigned macOS app as `KidRhythm.app`.
 
 ## Key Decisions
 
@@ -40,29 +51,37 @@ Next task: add local persistence and custom household setup so the Today view us
 - First platform is React/Vite.
 - First activity pack targets a mixed sibling household, ages 5 and 7.
 - Schedule blocks use exact times in the first slice.
+- Plain `localStorage` is the first persistence adapter.
+- Tauri is the macOS packaging path.
+- Default desktop build is app-only until DMG/signing is ready.
+- Whole-child understanding is the product North Star.
+- Better routines are the product outcome.
+- Whole-child signals must stay parent-controlled, practical, and non-diagnostic.
 
 ## Open Questions
 
 - Should the app include any AI-generated activity drafting later, or keep AI only as a planning assistant outside the product?
-- Should local persistence use plain `localStorage` first or an IndexedDB adapter from the start?
-- Should the setup flow be a modal wizard or an inline Household view?
+- Do you have an Apple Developer Program account and Developer ID Application certificate for signing?
+- Should the GitHub repo and local folder be renamed from `family-rhythm` to `kid-rhythm`?
+- Which whole-child signals should be first-class in the MVP: energy, interests, temperament, transition needs, sensory/mess tolerance, independence, sibling dynamics?
 
 ## Next Recommended Task
 
-Add local persistence and editable household setup:
+Choose next track:
 
-- persist feedback, recent activities, and schedule assignments
-- add a Household view for children and supplies
-- add an activity detail/edit surface
-- keep all recommendation logic deterministic and tested
+- Product track: add whole-child signal fields, insight cards, schedule editing, custom activities, and import/export.
+- Distribution track: configure Developer ID signing, notarization credentials, and DMG build.
 
 ## Checks Run
 
 Application checks:
 
-- `npm test`: passed, 8 tests
+- `npm test`: passed, 12 tests
 - `npm run build`: passed
 - `npm run lint`: passed
+- `cargo check --manifest-path src-tauri/Cargo.toml`: passed
+- `npm run desktop:build`: passed, produced unsigned `KidRhythm.app`
+- `npm run desktop:build:dmg`: native app compiled but DMG finalization failed in `bundle_dmg.sh`
 
 Dev server:
 

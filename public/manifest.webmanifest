@@ -1,0 +1,17 @@
+{
+  "name": "KidRhythm",
+  "short_name": "KidRhythm",
+  "description": "A local-first whole-child routine tool for kids at home.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7f8",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,16 +1,28 @@
-# Family Rhythm Project Plan
+# KidRhythm Project Plan
 
 ## 1. Product Thesis
 
-Parents do not need another list of random kids activities. They need a tool that understands the household rhythm and reduces decision fatigue during real days at home.
+Parents do not need another list of random kids activities. They need a tool that helps them understand the whole child so they can tailor better routines at home.
 
-Family Rhythm should combine:
+KidRhythm should understand:
 
+- energy patterns
+- temperament and transition needs
+- interests and avoidances
+- attention span and independence
+- sensory and mess tolerance
+- sibling dynamics
+- household context
+- what has actually worked before
+
+KidRhythm should combine:
+
+- whole-child profiles
 - a structured activity library
 - a flexible daily schedule
 - a queue that rotates between activity types
 - lightweight feedback from parents
-- pattern learning that remains explainable
+- parent-visible insights that remain explainable
 
 The product should work even when the family ignores the plan, starts late, skips activities, or needs a fast reset.
 
@@ -39,31 +51,34 @@ Non-target for MVP:
 1. Parent control first.
 2. Local-first and privacy-first by default.
 3. Recommendations must be explainable.
-4. The schedule is flexible, not punitive.
-5. The app should be useful without AI.
-6. Kids should not be nudged into more screen time.
-7. Activities should respect supplies, mess, supervision, and safety.
-8. The UI should be fast to operate with one hand while distracted.
+4. The product should support the whole child without making medical, diagnostic, or therapeutic claims.
+5. The schedule is flexible, not punitive.
+6. The app should be useful without AI.
+7. Kids should not be nudged into more screen time.
+8. Activities should respect supplies, mess, supervision, and safety.
+9. The UI should be fast to operate with one hand while distracted.
 
 ## 4. MVP Scope
 
 The MVP should answer three questions well:
 
-1. What can the kids do now?
-2. What is planned for the rest of today?
-3. What has worked for this household before?
+1. What does this child seem to need now?
+2. What can the kids do next that fits that need?
+3. What is planned for the rest of today?
+4. What patterns have worked for this household before?
 
 ### Included
 
 - Household setup
 - Child profiles
+- Child signals: energy, interests, transition needs, independence, sensory/mess tolerance
 - Activity library
 - Activity metadata
 - Daily rhythm templates
 - Today schedule
 - Activity queue
 - Parent feedback
-- Basic pattern learning
+- Basic whole-child pattern learning
 - Local persistence
 - Seed activity pack
 - Import/export backup
@@ -85,7 +100,7 @@ The MVP should answer three questions well:
 ### Flow A: First-Time Setup
 
 1. Parent adds household name or skips.
-2. Parent adds child profiles with age range and broad preferences.
+2. Parent adds child profiles with age range and broad preference signals.
 3. Parent selects constraints:
    - typical wake time
    - quiet time or nap window
@@ -93,8 +108,14 @@ The MVP should answer three questions well:
    - screen-time rules
    - indoor/outdoor availability
    - supervision availability
-4. Parent selects supplies already available at home.
-5. App creates a starter daily rhythm and queue.
+4. Parent selects whole-child signals:
+   - energy patterns
+   - transition sensitivity
+   - independence level
+   - sensory and mess tolerance
+   - current interests
+5. Parent selects supplies already available at home.
+6. App creates a starter daily rhythm and queue.
 
 Success criteria:
 
@@ -137,14 +158,16 @@ Success criteria:
    - too much supervision
    - child disliked it
    - try again later
-2. App updates activity scores for similar contexts.
-3. App shows plain-language reasons over time, such as "quiet activities after lunch usually work better."
+2. Parent can also mark child-state signals like low energy, needs connection, needs movement, or needs quiet.
+3. App updates activity scores for similar contexts.
+4. App shows plain-language reasons over time, such as "quiet activities after lunch usually work better."
 
 Success criteria:
 
 - Feedback is optional and fast.
 - The model is interpretable.
 - Parent can reset or edit learned preferences.
+- Insights are descriptive and practical, never diagnostic.
 
 ## 6. Activity Data Model
 
@@ -180,6 +203,7 @@ Household fields:
 - feedback history
 - blocked activities
 - preferred activity categories
+- child signal preferences: energy, independence, transition needs, interests, sensory/mess tolerance
 
 Schedule fields:
 
@@ -199,6 +223,7 @@ Feedback fields:
 - timestamp
 - context: time of day, before or after meal, weather, parent availability
 - rating
+- observed child state
 - reasons
 - notes
 
@@ -211,6 +236,8 @@ Inputs:
 - current time
 - open schedule window
 - child age range
+- child energy and temperament signals
+- child interests and avoidances
 - recently used activities
 - available supplies
 - supervision availability
@@ -347,7 +374,7 @@ Components:
 
 ### Insights View
 
-Purpose: show learned patterns without making the app feel creepy.
+Purpose: show learned whole-child patterns without making the app feel creepy or clinical.
 
 Components:
 
@@ -355,6 +382,8 @@ Components:
 - "works well" contexts
 - blocked or disliked activities
 - reset learning
+- child signal summaries
+- parent-editable interpretations
 
 ## 11. Technical Direction
 
@@ -512,10 +541,12 @@ The tool is not good enough if:
 
 - recommendations feel random
 - activities are vague
+- child profiles are only names and ages
 - parent controls are buried
 - schedule changes are brittle
 - privacy is unclear
 - AI output appears without review
+- insights feel clinical, judgmental, or creepy
 - the UI looks like a generic SaaS template
 - the app requires a long setup before value
 
@@ -523,6 +554,7 @@ The tool is good when:
 
 - a parent can open it and act quickly
 - activity suggestions fit the current household context
+- recommendations reflect the child's energy, interests, independence, and transition needs
 - schedule changes feel forgiving
 - feedback visibly improves the queue
 - the product works offline or local-first
@@ -546,6 +578,7 @@ Technical risks:
 Trust risks:
 
 - Child data handling is unclear.
+- Whole-child insights drift into diagnosis or parenting judgment.
 - AI-generated activities feel unsafe or low quality.
 - App seems to judge parenting.
 
@@ -566,4 +599,3 @@ Mitigations:
 5. Build the Today view around real scoring output.
 6. Add tests for ranking and schedule fit.
 7. Add local persistence.
-
