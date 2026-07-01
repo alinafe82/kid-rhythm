@@ -81,7 +81,7 @@ If context gets compacted, the essential summary should include:
 Suggested compact summary:
 
 ```text
-Project: /Users/alinafe/src/family-rhythm
+Project: /Users/alinafe/src/kid-rhythm
 Read first: AGENTS.md, docs/TASK_LOG.md, docs/PROJECT_PLAN.md
 Current phase: <phase>
 Active task: <task>

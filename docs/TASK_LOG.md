@@ -7,7 +7,7 @@ Status: product positioning pivoting to KidRhythm and whole-child routines.
 Project path:
 
 ```text
-/Users/alinafe/src/family-rhythm
+/Users/alinafe/src/kid-rhythm
 ```
 
 ## Active Task
@@ -21,7 +21,7 @@ Next task: reshape the product model and UI around whole-child signals, then dec
 - Added durable Codex instructions in `AGENTS.md`.
 - Added a detailed product and build plan in `docs/PROJECT_PLAN.md`.
 - Added continuity rules in `docs/CODEX_CONTINUITY.md`.
-- Moved project to `~/src/family-rhythm`.
+- Moved project to `~/src/kid-rhythm`.
 - Scaffolded a TypeScript React/Vite app.
 - Added seed activity data for a mixed sibling household.
 - Added domain types, deterministic recommendation scoring, and schedule helpers.
@@ -40,6 +40,7 @@ Next task: reshape the product model and UI around whole-child signals, then dec
 - Adopted `KidRhythm` as the working product name.
 - Set `getkidrhythm.com` as the domain target based on current RDAP availability check.
 - Rebuilt the unsigned macOS app as `KidRhythm.app`.
+- Renamed the private GitHub repo from `family-rhythm` to `kid-rhythm`.
 
 ## Key Decisions
 
@@ -62,7 +63,6 @@ Next task: reshape the product model and UI around whole-child signals, then dec
 
 - Should the app include any AI-generated activity drafting later, or keep AI only as a planning assistant outside the product?
 - Do you have an Apple Developer Program account and Developer ID Application certificate for signing?
-- Should the GitHub repo and local folder be renamed from `family-rhythm` to `kid-rhythm`?
 - Which whole-child signals should be first-class in the MVP: energy, interests, temperament, transition needs, sensory/mess tolerance, independence, sibling dynamics?
 
 ## Next Recommended Task
@@ -90,7 +90,7 @@ Dev server:
 Repository state:
 
 - local git repository initialized on `main`
-- private GitHub repo: `https://github.com/alinafe82/family-rhythm`
-- remote: `origin` -> `https://github.com/alinafe82/family-rhythm.git`
+- private GitHub repo: `https://github.com/alinafe82/kid-rhythm`
+- remote: `origin` -> `https://github.com/alinafe82/kid-rhythm.git`
 - initial commit: `6ad7ee2` (`Initial family rhythm MVP slice`)
 - remote verified private with default branch `main`

@@ -13,10 +13,10 @@ The product should feel practical, calm, and trustworthy. It is not a chatbot wr
 
 ## Repository
 
-Private GitHub repo, pending rename:
+Private GitHub repo:
 
 ```text
-https://github.com/alinafe82/family-rhythm
+https://github.com/alinafe82/kid-rhythm
 ```
 
 Domain target:
