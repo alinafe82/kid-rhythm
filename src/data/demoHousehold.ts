@@ -1,0 +1,142 @@
+import { toMinutes } from '../domain/schedule'
+import type { HouseholdProfile, ScheduleBlock } from '../domain/types'
+
+export const demoNowMinutes = toMinutes('13:10')
+
+export const demoHousehold: HouseholdProfile = {
+  children: [
+    { id: 'mara', name: 'Mara', age: 5 },
+    { id: 'leo', name: 'Leo', age: 7 },
+  ],
+  availableSupplies: [
+    'books',
+    'pillows',
+    'paper',
+    'crayons',
+    'stickers',
+    'tape',
+    'blocks',
+    'laundry basket',
+    'cups',
+    'snack bowls',
+  ],
+  blockedActivityIds: [],
+  feedback: [
+    {
+      activityId: 'reading-nest',
+      rating: 'worked',
+      contextPeriod: 'midday',
+      timestamp: '2026-06-29T13:20:00.000Z',
+      note: 'Good after lunch.',
+    },
+    {
+      activityId: 'rice-sensory-bin',
+      rating: 'too-messy',
+      contextPeriod: 'midday',
+      timestamp: '2026-06-28T14:10:00.000Z',
+    },
+    {
+      activityId: 'obstacle-loop',
+      rating: 'worked',
+      contextPeriod: 'morning',
+      timestamp: '2026-06-27T09:30:00.000Z',
+    },
+  ],
+  recentlyCompleted: [
+    {
+      activityId: 'tape-road-map',
+      category: 'pretend',
+      completedAtMinutesAgo: 120,
+    },
+  ],
+}
+
+export const initialSchedule: ScheduleBlock[] = [
+  {
+    id: 'breakfast',
+    label: 'Breakfast',
+    type: 'fixed',
+    startMinutes: toMinutes('08:30'),
+    endMinutes: toMinutes('09:00'),
+    locked: true,
+    status: 'completed',
+  },
+  {
+    id: 'morning-open',
+    label: 'Morning open play',
+    type: 'open',
+    startMinutes: toMinutes('09:00'),
+    endMinutes: toMinutes('10:15'),
+    locked: false,
+    status: 'completed',
+    preferredEnergy: 'active',
+  },
+  {
+    id: 'snack',
+    label: 'Snack',
+    type: 'fixed',
+    startMinutes: toMinutes('10:15'),
+    endMinutes: toMinutes('10:35'),
+    locked: true,
+    status: 'completed',
+  },
+  {
+    id: 'creative-block',
+    label: 'Creative block',
+    type: 'guided',
+    startMinutes: toMinutes('10:35'),
+    endMinutes: toMinutes('11:30'),
+    locked: false,
+    status: 'completed',
+    preferredCategory: 'creative',
+  },
+  {
+    id: 'lunch',
+    label: 'Lunch',
+    type: 'fixed',
+    startMinutes: toMinutes('12:00'),
+    endMinutes: toMinutes('12:45'),
+    locked: true,
+    status: 'completed',
+  },
+  {
+    id: 'quiet-reset',
+    label: 'Quiet reset',
+    type: 'open',
+    startMinutes: toMinutes('13:00'),
+    endMinutes: toMinutes('14:00'),
+    locked: false,
+    status: 'active',
+    preferredEnergy: 'calm',
+  },
+  {
+    id: 'afternoon-flex',
+    label: 'Afternoon flex',
+    type: 'guided',
+    startMinutes: toMinutes('14:15'),
+    endMinutes: toMinutes('15:15'),
+    locked: false,
+    status: 'planned',
+    preferredEnergy: 'moderate',
+  },
+  {
+    id: 'cleanup',
+    label: 'Cleanup sprint',
+    type: 'guided',
+    startMinutes: toMinutes('16:45'),
+    endMinutes: toMinutes('17:05'),
+    locked: false,
+    status: 'planned',
+    preferredCategory: 'chore',
+  },
+  {
+    id: 'dinner',
+    label: 'Dinner',
+    type: 'fixed',
+    startMinutes: toMinutes('17:30'),
+    endMinutes: toMinutes('18:15'),
+    locked: true,
+    status: 'planned',
+  },
+]
+
