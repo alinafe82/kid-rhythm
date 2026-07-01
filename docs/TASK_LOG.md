@@ -66,7 +66,7 @@ Application checks:
 
 Dev server:
 
-- running at `http://127.0.0.1:5173/`
+- last run at `http://127.0.0.1:5173/`; not currently running
 
 Repository state:
 
