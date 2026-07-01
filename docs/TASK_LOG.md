@@ -28,6 +28,7 @@ Next task: add local persistence and custom household setup so the Today view us
 - Added a Today view with context controls, current recommendation, alternates, feedback actions, and basic schedule assignment.
 - Added Vitest tests for recommendation and schedule behavior.
 - Removed unused SVG starter assets and replaced the default favicon.
+- Initialized local git repository and pushed to a private GitHub repo.
 
 ## Key Decisions
 
@@ -70,5 +71,7 @@ Dev server:
 Repository state:
 
 - local git repository initialized on `main`
-- initial commit: `e5e5a2e` (`Initial family rhythm MVP slice`)
-- GitHub remote is pending because `gh auth status` reports an invalid token for `alinafe82`
+- private GitHub repo: `https://github.com/alinafe82/family-rhythm`
+- remote: `origin` -> `https://github.com/alinafe82/family-rhythm.git`
+- initial commit: `6ad7ee2` (`Initial family rhythm MVP slice`)
+- remote verified private with default branch `main`

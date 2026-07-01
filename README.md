@@ -10,6 +10,14 @@ The product should feel practical, calm, and trustworthy. It is not a chatbot wr
 - [Codex continuity](docs/CODEX_CONTINUITY.md): how to run Codex sessions without losing project context.
 - [Task log](docs/TASK_LOG.md): current status, next actions, open questions, and decision history.
 
+## Repository
+
+Private GitHub repo:
+
+```text
+https://github.com/alinafe82/family-rhythm
+```
+
 ## Development
 
 ```bash
