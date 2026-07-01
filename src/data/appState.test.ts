@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   APP_STATE_STORAGE_KEY,
   clearAppState,
+  createDefaultChildSignals,
   createDefaultAppState,
   loadAppState,
   saveAppState,
@@ -39,6 +40,10 @@ describe('app state persistence', () => {
       id: 'ava',
       name: 'Ava',
       age: 6,
+      signals: {
+        ...createDefaultChildSignals(),
+        preferredEnergy: 'active',
+      },
     }
     state.household.availableSupplies = ['books']
 
@@ -46,6 +51,58 @@ describe('app state persistence', () => {
 
     expect(loadAppState(storage).household.children[0]?.name).toBe('Ava')
     expect(loadAppState(storage).household.availableSupplies).toEqual(['books'])
+  })
+
+  it('adds default whole-child signals to older child records', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(
+      APP_STATE_STORAGE_KEY,
+      JSON.stringify({
+        household: {
+          children: [{ id: 'old', name: 'Old record', age: 5 }],
+          availableSupplies: [],
+          blockedActivityIds: [],
+          feedback: [],
+          recentlyCompleted: [],
+        },
+        schedule: createDefaultAppState().schedule,
+      }),
+    )
+
+    expect(loadAppState(storage).household.children[0]?.signals).toEqual(
+      createDefaultChildSignals(),
+    )
+  })
+
+  it('filters stored interests to known activity categories', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(
+      APP_STATE_STORAGE_KEY,
+      JSON.stringify({
+        household: {
+          children: [
+            {
+              id: 'stored',
+              name: 'Stored child',
+              age: 7,
+              signals: {
+                ...createDefaultChildSignals(),
+                interests: ['creative', 'unknown', 'movement', 'creative'],
+              },
+            },
+          ],
+          availableSupplies: [],
+          blockedActivityIds: [],
+          feedback: [],
+          recentlyCompleted: [],
+        },
+        schedule: createDefaultAppState().schedule,
+      }),
+    )
+
+    expect(loadAppState(storage).household.children[0]?.signals.interests).toEqual(
+      ['creative', 'movement'],
+    )
   })
 
   it('falls back to defaults when stored data is malformed', () => {
@@ -63,4 +120,3 @@ describe('app state persistence', () => {
     expect(storage.getItem(APP_STATE_STORAGE_KEY)).toBeNull()
   })
 })
-

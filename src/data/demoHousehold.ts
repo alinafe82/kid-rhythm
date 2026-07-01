@@ -5,8 +5,32 @@ export const demoNowMinutes = toMinutes('13:10')
 
 export const demoHousehold: HouseholdProfile = {
   children: [
-    { id: 'mara', name: 'Mara', age: 5 },
-    { id: 'leo', name: 'Leo', age: 7 },
+    {
+      id: 'mara',
+      name: 'Mara',
+      age: 5,
+      signals: {
+        preferredEnergy: 'calm',
+        transitionNeed: 'sensitive',
+        independence: 'nearby',
+        messTolerance: 'low',
+        sensoryNeed: 'low-stimulus',
+        interests: ['reading', 'creative', 'pretend'],
+      },
+    },
+    {
+      id: 'leo',
+      name: 'Leo',
+      age: 7,
+      signals: {
+        preferredEnergy: 'moderate',
+        transitionNeed: 'warmup',
+        independence: 'independent',
+        messTolerance: 'medium',
+        sensoryNeed: 'balanced',
+        interests: ['movement', 'learning', 'chore'],
+      },
+    },
   ],
   availableSupplies: [
     'books',
@@ -139,4 +163,3 @@ export const initialSchedule: ScheduleBlock[] = [
     status: 'planned',
   },
 ]
-

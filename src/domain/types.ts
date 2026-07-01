@@ -17,6 +17,18 @@ export type BurdenLevel = 'none' | 'low' | 'medium' | 'high'
 export type ActivitySetting = 'indoor' | 'outdoor' | 'either'
 export type SiblingFit = 'solo' | 'siblings' | 'either'
 export type TimePeriod = 'morning' | 'midday' | 'afternoon' | 'evening'
+export type TransitionNeed = 'easy' | 'warmup' | 'sensitive'
+export type IndependenceNeed = 'independent' | 'nearby' | 'together'
+export type SensoryNeed = 'low-stimulus' | 'balanced' | 'sensory-seeking'
+
+export interface ChildSignals {
+  preferredEnergy: EnergyLevel
+  transitionNeed: TransitionNeed
+  independence: IndependenceNeed
+  messTolerance: BurdenLevel
+  sensoryNeed: SensoryNeed
+  interests: ActivityCategory[]
+}
 
 export interface AgeRange {
   min: number
@@ -53,6 +65,7 @@ export interface ChildProfile {
   id: string
   name: string
   age: number
+  signals: ChildSignals
 }
 
 export type FeedbackRating =
@@ -127,4 +140,3 @@ export interface ActivityRecommendation {
   reasons: string[]
   cautions: string[]
 }
-

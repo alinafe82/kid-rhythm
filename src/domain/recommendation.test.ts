@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { demoHousehold } from '../data/demoHousehold'
 import { seedActivities } from '../data/seedActivities'
 import { toMinutes } from './schedule'
-import type { RecommendationContext } from './types'
+import type { HouseholdProfile, RecommendationContext } from './types'
 import { rankActivities, scoreActivity } from './recommendation'
 
 const middayCalmContext: RecommendationContext = {
@@ -72,5 +72,59 @@ describe('activity recommendations', () => {
     expect(withRecent?.score).toBeLessThan(withoutRecent?.score ?? 0)
     expect(withRecent?.cautions).toContain('Recently used; better as a backup.')
   })
-})
 
+  it('rewards activities that match child interests and energy patterns', () => {
+    const stickerStory = seedActivities.find(
+      (activity) => activity.id === 'sticker-story',
+    )
+    const household: HouseholdProfile = {
+      ...demoHousehold,
+      children: [
+        {
+          ...demoHousehold.children[0]!,
+          signals: {
+            ...demoHousehold.children[0]!.signals,
+            preferredEnergy: 'calm',
+            interests: ['creative'],
+          },
+        },
+      ],
+    }
+
+    expect(stickerStory).toBeDefined()
+
+    const scored = scoreActivity(stickerStory!, household, middayCalmContext)
+
+    expect(scored?.reasons).toContain("Matches Mara's usual energy pattern.")
+    expect(scored?.reasons).toContain("Connects with Mara's interests.")
+  })
+
+  it('flags activities that exceed a child mess tolerance', () => {
+    const sensoryBin = seedActivities.find(
+      (activity) => activity.id === 'rice-sensory-bin',
+    )
+    const household: HouseholdProfile = {
+      ...demoHousehold,
+      children: [
+        {
+          ...demoHousehold.children[0]!,
+          signals: {
+            ...demoHousehold.children[0]!.signals,
+            messTolerance: 'low',
+          },
+        },
+      ],
+      availableSupplies: ['dry rice', 'cups', 'tray'],
+    }
+    const context: RecommendationContext = {
+      ...middayCalmContext,
+      supervisionAvailability: 'active',
+    }
+
+    expect(sensoryBin).toBeDefined()
+
+    const scored = scoreActivity(sensoryBin!, household, context)
+
+    expect(scored?.cautions).toContain("Mara's mess tolerance may be stretched.")
+  })
+})

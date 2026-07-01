@@ -1,5 +1,11 @@
 import { demoHousehold, initialSchedule } from './demoHousehold'
-import type { HouseholdProfile, ScheduleBlock } from '../domain/types'
+import type {
+  ActivityCategory,
+  ChildProfile,
+  ChildSignals,
+  HouseholdProfile,
+  ScheduleBlock,
+} from '../domain/types'
 
 export const APP_STATE_STORAGE_KEY = 'kidrhythm:v1'
 
@@ -13,6 +19,24 @@ export interface StorageLike {
   setItem: (key: string, value: string) => void
   removeItem: (key: string) => void
 }
+
+const energyLevels = ['calm', 'moderate', 'active'] as const
+const transitionNeeds = ['easy', 'warmup', 'sensitive'] as const
+const independenceNeeds = ['independent', 'nearby', 'together'] as const
+const burdenLevels = ['none', 'low', 'medium', 'high'] as const
+const sensoryNeeds = ['low-stimulus', 'balanced', 'sensory-seeking'] as const
+const activityCategories = [
+  'creative',
+  'movement',
+  'reading',
+  'pretend',
+  'sensory',
+  'chore',
+  'learning',
+  'outdoor',
+  'social',
+  'independent',
+] as const satisfies readonly ActivityCategory[]
 
 export function createDefaultAppState(): AppState {
   return cloneState({
@@ -60,6 +84,17 @@ export function clearAppState(storage: StorageLike | undefined): void {
   storage?.removeItem(APP_STATE_STORAGE_KEY)
 }
 
+export function createDefaultChildSignals(): ChildSignals {
+  return {
+    preferredEnergy: 'moderate',
+    transitionNeed: 'warmup',
+    independence: 'nearby',
+    messTolerance: 'medium',
+    sensoryNeed: 'balanced',
+    interests: ['creative', 'movement', 'reading'],
+  }
+}
+
 function normalizeHousehold(
   household: unknown,
   fallback: HouseholdProfile,
@@ -70,7 +105,7 @@ function normalizeHousehold(
 
   return {
     children: Array.isArray(household.children)
-      ? household.children
+      ? household.children.map(normalizeChild)
       : fallback.children,
     availableSupplies: Array.isArray(household.availableSupplies)
       ? household.availableSupplies
@@ -87,6 +122,65 @@ function normalizeHousehold(
   }
 }
 
+function normalizeChild(child: unknown): ChildProfile {
+  const defaults: ChildProfile = {
+    id: `child-${Date.now()}`,
+    name: 'Child',
+    age: 6,
+    signals: createDefaultChildSignals(),
+  }
+
+  if (!isRecord(child)) {
+    return defaults
+  }
+
+  return {
+    id: typeof child.id === 'string' ? child.id : defaults.id,
+    name: typeof child.name === 'string' ? child.name : defaults.name,
+    age: typeof child.age === 'number' ? child.age : defaults.age,
+    signals: normalizeSignals(child.signals),
+  }
+}
+
+function normalizeSignals(signals: unknown): ChildSignals {
+  const defaults = createDefaultChildSignals()
+
+  if (!isRecord(signals)) {
+    return defaults
+  }
+
+  return {
+    preferredEnergy: hasKnownValue(energyLevels, signals.preferredEnergy)
+      ? signals.preferredEnergy
+      : defaults.preferredEnergy,
+    transitionNeed: hasKnownValue(transitionNeeds, signals.transitionNeed)
+      ? signals.transitionNeed
+      : defaults.transitionNeed,
+    independence: hasKnownValue(independenceNeeds, signals.independence)
+      ? signals.independence
+      : defaults.independence,
+    messTolerance: hasKnownValue(burdenLevels, signals.messTolerance)
+      ? signals.messTolerance
+      : defaults.messTolerance,
+    sensoryNeed: hasKnownValue(sensoryNeeds, signals.sensoryNeed)
+      ? signals.sensoryNeed
+      : defaults.sensoryNeed,
+    interests: Array.isArray(signals.interests)
+      ? normalizeInterests(signals.interests)
+      : defaults.interests,
+  }
+}
+
+function normalizeInterests(interests: unknown[]): ActivityCategory[] {
+  return Array.from(
+    new Set(
+      interests.filter((interest): interest is ActivityCategory =>
+        hasKnownValue(activityCategories, interest),
+      ),
+    ),
+  )
+}
+
 function normalizeSchedule(
   schedule: unknown,
   fallback: ScheduleBlock[],
@@ -100,4 +194,11 @@ function cloneState(state: AppState): AppState {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function hasKnownValue<T extends string>(
+  values: readonly T[],
+  value: unknown,
+): value is T {
+  return typeof value === 'string' && values.includes(value as T)
 }

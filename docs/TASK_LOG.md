@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Status: product positioning pivoting to KidRhythm and whole-child routines.
+Status: KidRhythm has a working local-first whole-child recommendation slice.
 
 Project path:
 
@@ -12,7 +12,7 @@ Project path:
 
 ## Active Task
 
-Next task: reshape the product model and UI around whole-child signals, then decide whether to rename the GitHub repo/local folder.
+Next task: choose whether to deepen scheduling controls, custom activity authoring, or macOS distribution/signing.
 
 ## Completed
 
@@ -41,6 +41,10 @@ Next task: reshape the product model and UI around whole-child signals, then dec
 - Set `getkidrhythm.com` as the domain target based on current RDAP availability check.
 - Rebuilt the unsigned macOS app as `KidRhythm.app`.
 - Renamed the private GitHub repo from `family-rhythm` to `kid-rhythm`.
+- Added first-class whole-child signal data to child profiles: energy, transition need, independence, mess tolerance, sensory need, and interests.
+- Added localStorage migration defaults for older child records without signal data.
+- Added signal-aware deterministic recommendation scoring with parent-visible reasons and cautions.
+- Added a whole-child fit panel and editable signal controls in the Today UI.
 
 ## Key Decisions
 
@@ -63,20 +67,20 @@ Next task: reshape the product model and UI around whole-child signals, then dec
 
 - Should the app include any AI-generated activity drafting later, or keep AI only as a planning assistant outside the product?
 - Do you have an Apple Developer Program account and Developer ID Application certificate for signing?
-- Which whole-child signals should be first-class in the MVP: energy, interests, temperament, transition needs, sensory/mess tolerance, independence, sibling dynamics?
+- Should sibling dynamics become its own first-class signal, or stay implicit in activity metadata for the next slice?
 
 ## Next Recommended Task
 
 Choose next track:
 
-- Product track: add whole-child signal fields, insight cards, schedule editing, custom activities, and import/export.
+- Product track: add schedule editing, custom activities, sibling-dynamics signals, and import/export.
 - Distribution track: configure Developer ID signing, notarization credentials, and DMG build.
 
 ## Checks Run
 
 Application checks:
 
-- `npm test`: passed, 12 tests
+- `npm test`: passed, 16 tests
 - `npm run build`: passed
 - `npm run lint`: passed
 - `cargo check --manifest-path src-tauri/Cargo.toml`: passed

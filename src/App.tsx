@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import {
   clearAppState,
+  createDefaultChildSignals,
   createDefaultAppState,
   loadAppState,
   saveAppState,
@@ -22,13 +23,19 @@ import {
 import { getTimePeriod, rankActivities } from './domain/recommendation'
 import type {
   Activity,
+  ActivityCategory,
   ActivitySetting,
+  BurdenLevel,
   ChildProfile,
+  ChildSignals,
   EnergyLevel,
   FeedbackRating,
   HouseholdProfile,
+  IndependenceNeed,
   ScheduleBlock,
+  SensoryNeed,
   SupervisionLevel,
+  TransitionNeed,
 } from './domain/types'
 
 const timeOptions = [
@@ -38,6 +45,30 @@ const timeOptions = [
 ]
 
 const energyOptions: EnergyLevel[] = ['calm', 'moderate', 'active']
+const categoryOptions: ActivityCategory[] = [
+  'creative',
+  'movement',
+  'reading',
+  'pretend',
+  'sensory',
+  'chore',
+  'learning',
+  'outdoor',
+  'social',
+  'independent',
+]
+const transitionOptions: TransitionNeed[] = ['easy', 'warmup', 'sensitive']
+const independenceOptions: IndependenceNeed[] = [
+  'independent',
+  'nearby',
+  'together',
+]
+const messToleranceOptions: BurdenLevel[] = ['none', 'low', 'medium', 'high']
+const sensoryOptions: SensoryNeed[] = [
+  'low-stimulus',
+  'balanced',
+  'sensory-seeking',
+]
 const supervisionOptions: SupervisionLevel[] = ['independent', 'nearby', 'active']
 const settingOptions: ActivitySetting[] = ['indoor', 'outdoor', 'either']
 
@@ -93,6 +124,7 @@ function App() {
 
   const primary = recommendations[0]
   const alternates = recommendations.slice(1, 3)
+  const insightCards = useMemo(() => buildInsightCards(household), [household])
   const selectedActivity =
     activityById.get(selectedActivityId) ?? primary?.activity ?? seedActivities[0]
   const selectedActivityBlocked = household.blockedActivityIds.includes(
@@ -187,8 +219,52 @@ function App() {
           id: `child-${Date.now()}`,
           name: 'New child',
           age: 6,
+          signals: createDefaultChildSignals(),
         },
       ],
+    }))
+  }
+
+  const updateChildSignals = (
+    childId: string,
+    patch: Partial<ChildSignals>,
+  ) => {
+    updateHousehold((current) => ({
+      ...current,
+      children: current.children.map((child) =>
+        child.id === childId
+          ? {
+              ...child,
+              signals: {
+                ...child.signals,
+                ...patch,
+              },
+            }
+          : child,
+      ),
+    }))
+  }
+
+  const toggleChildInterest = (childId: string, category: ActivityCategory) => {
+    updateHousehold((current) => ({
+      ...current,
+      children: current.children.map((child) => {
+        if (child.id !== childId) {
+          return child
+        }
+
+        const hasInterest = child.signals.interests.includes(category)
+
+        return {
+          ...child,
+          signals: {
+            ...child.signals,
+            interests: hasInterest
+              ? child.signals.interests.filter((item) => item !== category)
+              : [...child.signals.interests, category].sort(),
+          },
+        }
+      }),
     }))
   }
 
@@ -385,6 +461,7 @@ function App() {
         </section>
 
         <aside className="side-stack">
+          <InsightsPanel cards={insightCards} />
           <SchedulePanel
             activityById={activityById}
             activeBlock={activeBlock}
@@ -414,38 +491,141 @@ function App() {
 
           <div className="child-list">
             {household.children.map((child) => (
-              <div key={child.id} className="child-row">
-                <label>
-                  <span>Name</span>
-                  <input
-                    value={child.name}
-                    onChange={(event) =>
-                      updateChild(child.id, { name: event.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Age</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="12"
-                    value={child.age}
-                    onChange={(event) =>
-                      updateChild(child.id, {
-                        age: Number(event.target.value),
-                      })
-                    }
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => removeChild(child.id)}
-                >
-                  Remove
-                </button>
-              </div>
+              <article key={child.id} className="child-card">
+                <div className="child-row">
+                  <label>
+                    <span>Name</span>
+                    <input
+                      value={child.name}
+                      onChange={(event) =>
+                        updateChild(child.id, { name: event.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>Age</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="12"
+                      value={child.age}
+                      onChange={(event) =>
+                        updateChild(child.id, {
+                          age: Number(event.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => removeChild(child.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div className="signal-grid">
+                  <label>
+                    <span>Energy</span>
+                    <select
+                      value={child.signals.preferredEnergy}
+                      onChange={(event) =>
+                        updateChildSignals(child.id, {
+                          preferredEnergy: event.target.value as EnergyLevel,
+                        })
+                      }
+                    >
+                      {energyOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Transitions</span>
+                    <select
+                      value={child.signals.transitionNeed}
+                      onChange={(event) =>
+                        updateChildSignals(child.id, {
+                          transitionNeed: event.target.value as TransitionNeed,
+                        })
+                      }
+                    >
+                      {transitionOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Independence</span>
+                    <select
+                      value={child.signals.independence}
+                      onChange={(event) =>
+                        updateChildSignals(child.id, {
+                          independence: event.target.value as IndependenceNeed,
+                        })
+                      }
+                    >
+                      {independenceOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Mess tolerance</span>
+                    <select
+                      value={child.signals.messTolerance}
+                      onChange={(event) =>
+                        updateChildSignals(child.id, {
+                          messTolerance: event.target.value as BurdenLevel,
+                        })
+                      }
+                    >
+                      {messToleranceOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Sensory</span>
+                    <select
+                      value={child.signals.sensoryNeed}
+                      onChange={(event) =>
+                        updateChildSignals(child.id, {
+                          sensoryNeed: event.target.value as SensoryNeed,
+                        })
+                      }
+                    >
+                      {sensoryOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="interest-grid" aria-label={`${child.name} interests`}>
+                  {categoryOptions.map((category) => (
+                    <label key={category} className="check-tile">
+                      <input
+                        type="checkbox"
+                        checked={child.signals.interests.includes(category)}
+                        onChange={() => toggleChildInterest(child.id, category)}
+                      />
+                      <span>{category}</span>
+                    </label>
+                  ))}
+                </div>
+              </article>
             ))}
           </div>
         </div>
@@ -511,6 +691,111 @@ function App() {
       </section>
     </main>
   )
+}
+
+interface InsightCard {
+  label: string
+  value: string
+  detail: string
+}
+
+interface InsightsPanelProps {
+  cards: InsightCard[]
+}
+
+function InsightsPanel({ cards }: InsightsPanelProps) {
+  return (
+    <section className="insights-panel" aria-label="Whole-child insights">
+      <div className="section-heading compact">
+        <div>
+          <p className="eyebrow">Signals</p>
+          <h2>Whole-child fit</h2>
+        </div>
+      </div>
+      <div className="insight-list">
+        {cards.map((card) => (
+          <article key={`${card.label}-${card.value}`} className="insight-card">
+            <span>{card.label}</span>
+            <strong>{card.value}</strong>
+            <p>{card.detail}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function buildInsightCards(household: HouseholdProfile): InsightCard[] {
+  const firstChild = household.children[0]
+
+  if (!firstChild) {
+    return [
+      {
+        label: 'Profile',
+        value: 'No child profile',
+        detail: 'Add a child to start tailoring routines.',
+      },
+    ]
+  }
+
+  return [
+    {
+      label: 'Energy',
+      value: summarizeChildSignal(
+        household.children,
+        (child) => child.signals.preferredEnergy,
+      ),
+      detail: `Recommendations compare the current energy target with ${listChildSignals(
+        household.children,
+        (child) => child.signals.preferredEnergy,
+      )}.`,
+    },
+    {
+      label: 'Transitions',
+      value: summarizeChildSignal(
+        household.children,
+        (child) => child.signals.transitionNeed,
+      ),
+      detail: household.children.some(
+        (child) => child.signals.transitionNeed === 'sensitive',
+      )
+        ? 'Sensitive transitions get low setup and low cleanup boosts.'
+        : `Routine fit still accounts for ${listChildSignals(
+            household.children,
+            (child) => child.signals.transitionNeed,
+          )}.`,
+    },
+    {
+      label: 'Interests',
+      value: summarizeInterests(household.children),
+      detail: `Interest matches are ranked higher across ${listChildSignals(
+        household.children,
+        (child) => child.signals.interests.slice(0, 2).join(', ') || 'open',
+      )}.`,
+    },
+  ]
+}
+
+function summarizeChildSignal(
+  children: ChildProfile[],
+  readSignal: (child: ChildProfile) => string,
+): string {
+  return Array.from(new Set(children.map(readSignal))).join(' + ')
+}
+
+function summarizeInterests(children: ChildProfile[]): string {
+  return (
+    Array.from(new Set(children.flatMap((child) => child.signals.interests)))
+      .slice(0, 3)
+      .join(', ') || 'open'
+  )
+}
+
+function listChildSignals(
+  children: ChildProfile[],
+  readSignal: (child: ChildProfile) => string,
+): string {
+  return children.map((child) => `${child.name}: ${readSignal(child)}`).join('; ')
 }
 
 interface SchedulePanelProps {

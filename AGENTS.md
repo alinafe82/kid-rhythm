@@ -2,14 +2,15 @@
 
 ## Project Purpose
 
-Build Family Rhythm, a parent-controlled activity planner that rotates and schedules at-home kids activities based on household patterns, constraints, and feedback.
+Build KidRhythm, a parent-controlled whole-child routine tool that rotates and schedules at-home kids activities based on each child's signals, household patterns, constraints, and feedback.
 
-The product goal is a useful family operations tool, not an AI demo. Prioritize deterministic behavior, clear UX, privacy, and testable scheduling logic.
+The product goal is a useful family operations tool, not an AI demo. Prioritize deterministic behavior, clear UX, privacy, parent control, and testable scheduling logic.
 
 ## Product Standards
 
 - Build for tired parents who need fast decisions and low-friction control.
 - Keep kid data private and minimal. Do not add tracking, ads, public sharing, or third-party behavioral analytics.
+- Treat whole-child understanding as practical fit signals, not diagnosis or clinical assessment.
 - Treat AI as optional. The core planner, scheduler, and feedback loop must work without AI.
 - Prefer explainable recommendations over opaque personalization.
 - Avoid generic "activity idea" slop. Every activity should include age fit, duration, supervision level, energy level, setup burden, cleanup burden, supplies, and safety notes.
@@ -42,4 +43,3 @@ A task is done when:
 - relevant tests or checks have run, or the gap is explicitly noted
 - docs are updated if the product direction, architecture, or workflow changed
 - `docs/TASK_LOG.md` has a concise handoff note for the next session
-

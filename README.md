@@ -54,4 +54,4 @@ AI should be optional and subordinate to product logic. The MVP can work without
 
 ## Current Slice
 
-The app currently includes a Today view backed by deterministic scoring, seed activity data, basic schedule blocks, parent controls, editable child/supply data, feedback actions, local persistence, and unit tests for recommendation, schedule, and persistence logic.
+The app currently includes a Today view backed by deterministic scoring, seed activity data, basic schedule blocks, whole-child signal controls, parent-visible fit insights, editable child/supply data, feedback actions, local persistence, and unit tests for recommendation, schedule, and persistence logic.
