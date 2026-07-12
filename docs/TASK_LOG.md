@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Status: product positioning pivoting to KidRhythm and whole-child routines.
+Status: KidRhythm has a working local-first whole-child recommendation, household organizer, and local household account gate.
 
 Project path:
 
@@ -12,7 +12,7 @@ Project path:
 
 ## Active Task
 
-Next task: reshape the product model and UI around whole-child signals, then decide whether to rename the GitHub repo/local folder.
+Completed this session: added account gating so the planner is not exposed before a parent creates or signs into a household account.
 
 ## Completed
 
@@ -41,6 +41,21 @@ Next task: reshape the product model and UI around whole-child signals, then dec
 - Set `getkidrhythm.com` as the domain target based on current RDAP availability check.
 - Rebuilt the unsigned macOS app as `KidRhythm.app`.
 - Renamed the private GitHub repo from `family-rhythm` to `kid-rhythm`.
+- Added first-class whole-child signal data to child profiles: energy, transition need, independence, mess tolerance, sensory need, and interests.
+- Added localStorage migration defaults for older child records without signal data.
+- Added signal-aware deterministic recommendation scoring with parent-visible reasons and cautions.
+- Added a whole-child fit panel and editable signal controls in the Today UI.
+- Added a Cozi-inspired Family Hub with local groceries, family to-dos, meal plan entries, and caregiver handoff notes.
+- Extended local persistence and migration defaults for Family Hub data.
+- Added persistence tests for organizer defaults, stored edits, old records, and malformed organizer rows.
+- Updated the project plan to record the free/local-first Cozi benchmark decision and explicitly avoid paid themes, old WordPress/plugin stacks, and third-party tracking scripts.
+- Added Vitest V8 coverage tooling with enforced 100% statements, branches, functions, and lines for `src/domain` and `src/data`.
+- Expanded domain/data tests from 17 to 38 cases to cover recommendation filters, scoring branches, schedule edge cases, and localStorage migration/fallback paths.
+- Reworked the website shell to better match the chosen Cozi-style family organizer direction: site header/navigation, centered hero summary, Open Sans-style font stack, brighter family-friendly palette, softer cards, and responsive page-width layout.
+- Added local account/session persistence helpers for a household account gate.
+- Gated the planner UI so the account screen renders first and the planner does not mount until a local account session exists.
+- Added sign out behavior that clears the local session without deleting household planner data.
+- Added account persistence tests for create, sign-in verification, clearing, missing storage, malformed records, and session mismatch cases.
 
 ## Key Decisions
 
@@ -58,34 +73,60 @@ Next task: reshape the product model and UI around whole-child signals, then dec
 - Whole-child understanding is the product North Star.
 - Better routines are the product outcome.
 - Whole-child signals must stay parent-controlled, practical, and non-diagnostic.
+- Cozi is a useful benchmark for family operations, but KidRhythm should not copy Cozi branding, proprietary content, or tracking stack.
+- MVP family organizer features should use the existing free React/Vite/localStorage stack instead of WordPress 5.1.1, Divi, paid plugins, or analytics pixels.
+- The enforced 100% coverage gate applies to deterministic core logic in `src/domain` and `src/data`; UI coverage should wait for a browser/React test harness.
+- Visual direction should benchmark Cozi's family organizer clarity while using original KidRhythm branding, local-first privacy, and no third-party tracking or paid theme dependencies.
+- The MVP account gate is local-only and free: it hides household data on the current device, but it is not production cloud authentication or cross-device identity.
+- The planner should not mount until a local household account session exists.
 
 ## Open Questions
 
 - Should the app include any AI-generated activity drafting later, or keep AI only as a planning assistant outside the product?
 - Do you have an Apple Developer Program account and Developer ID Application certificate for signing?
-- Which whole-child signals should be first-class in the MVP: energy, interests, temperament, transition needs, sensory/mess tolerance, independence, sibling dynamics?
+- Should sibling dynamics become its own first-class signal, or stay implicit in activity metadata for the next slice?
+- Should the Family Hub get import/export next, or should schedule editing remain the priority?
+- What production authentication and backend should replace the local-only account gate before public launch?
 
 ## Next Recommended Task
 
 Choose next track:
 
-- Product track: add whole-child signal fields, insight cards, schedule editing, custom activities, and import/export.
+- Product track: add schedule editing, custom activities, sibling-dynamics signals, and import/export.
+- Family Hub track: add inline editing, recurring chores, list sections, print/export, and connection between meal plans and grocery items.
+- Auth track: add production accounts, backend persistence, password reset, and cross-device sync before letting real families rely on accounts across devices.
 - Distribution track: configure Developer ID signing, notarization credentials, and DMG build.
 
 ## Checks Run
 
 Application checks:
 
-- `npm test`: passed, 12 tests
+- `npm test`: passed, 16 tests
 - `npm run build`: passed
 - `npm run lint`: passed
+- `npm test`: passed, 17 tests after Family Hub persistence changes
+- `npm run lint`: passed after Family Hub changes
+- `npm run build`: passed after Family Hub changes
+- `npm run test:coverage`: passed with 100% statements, branches, functions, and lines across `src/domain` and `src/data`
+- `npm test`: passed, 38 tests
+- `npm run lint`: passed after coverage/test changes
+- `npm run build`: passed after coverage/test changes
+- `npm run lint`: passed after website design correction
+- `npm run build`: passed after website design correction
+- `npm test`: passed, 38 tests after website design correction
+- `npm run test:coverage`: passed at 100% statements, branches, functions, and lines for `src/domain` and `src/data` after website design correction
+- `npm run lint`: passed after account gate
+- `npm run build`: passed after account gate
+- `npm test`: passed, 44 tests after account gate
+- `npm run test:coverage`: passed at 100% statements, branches, functions, and lines for `src/domain` and `src/data` after account gate
+- `curl -fsSL http://127.0.0.1:5173/`: passed after account gate
 - `cargo check --manifest-path src-tauri/Cargo.toml`: passed
 - `npm run desktop:build`: passed, produced unsigned `KidRhythm.app`
 - `npm run desktop:build:dmg`: native app compiled but DMG finalization failed in `bundle_dmg.sh`
 
 Dev server:
 
-- last run at `http://127.0.0.1:5173/`; not currently running
+- currently running at `http://127.0.0.1:5173/` from `npm run dev -- --host 127.0.0.1`
 
 Repository state:
 

@@ -1,12 +1,40 @@
 import { toMinutes } from '../domain/schedule'
-import type { HouseholdProfile, ScheduleBlock } from '../domain/types'
+import type {
+  FamilyOrganizer,
+  HouseholdProfile,
+  ScheduleBlock,
+} from '../domain/types'
 
 export const demoNowMinutes = toMinutes('13:10')
 
 export const demoHousehold: HouseholdProfile = {
   children: [
-    { id: 'mara', name: 'Mara', age: 5 },
-    { id: 'leo', name: 'Leo', age: 7 },
+    {
+      id: 'mara',
+      name: 'Mara',
+      age: 5,
+      signals: {
+        preferredEnergy: 'calm',
+        transitionNeed: 'sensitive',
+        independence: 'nearby',
+        messTolerance: 'low',
+        sensoryNeed: 'low-stimulus',
+        interests: ['reading', 'creative', 'pretend'],
+      },
+    },
+    {
+      id: 'leo',
+      name: 'Leo',
+      age: 7,
+      signals: {
+        preferredEnergy: 'moderate',
+        transitionNeed: 'warmup',
+        independence: 'independent',
+        messTolerance: 'medium',
+        sensoryNeed: 'balanced',
+        interests: ['movement', 'learning', 'chore'],
+      },
+    },
   ],
   availableSupplies: [
     'books',
@@ -140,3 +168,60 @@ export const initialSchedule: ScheduleBlock[] = [
   },
 ]
 
+export const demoOrganizer: FamilyOrganizer = {
+  groceryItems: [
+    {
+      id: 'grocery-apples',
+      text: 'Apples',
+      completed: false,
+    },
+    {
+      id: 'grocery-yogurt',
+      text: 'Yogurt cups',
+      completed: false,
+    },
+    {
+      id: 'grocery-markers',
+      text: 'Washable markers',
+      completed: true,
+    },
+  ],
+  todoItems: [
+    {
+      id: 'todo-library-books',
+      text: 'Return library books',
+      completed: false,
+    },
+    {
+      id: 'todo-cleanup-bins',
+      text: 'Reset craft bins',
+      completed: false,
+    },
+    {
+      id: 'todo-backpack',
+      text: 'Pack swim bag',
+      completed: true,
+    },
+  ],
+  mealPlan: [
+    {
+      id: 'meal-tonight',
+      dayLabel: 'Tonight',
+      meal: 'Sheet-pan tacos',
+      notes: 'Use quick cleanup plates.',
+    },
+    {
+      id: 'meal-tomorrow',
+      dayLabel: 'Tomorrow',
+      meal: 'Pasta and fruit',
+      notes: 'Good before early bedtime.',
+    },
+  ],
+  notes: [
+    {
+      id: 'note-caregiver',
+      title: 'Caregiver handoff',
+      body: 'Mara usually needs a warning before cleanup. Leo can start independent chores with a timer.',
+    },
+  ],
+}

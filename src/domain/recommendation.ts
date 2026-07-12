@@ -2,6 +2,7 @@ import type {
   Activity,
   ActivityRecommendation,
   BurdenLevel,
+  ChildProfile,
   EnergyLevel,
   FeedbackRating,
   HouseholdProfile,
@@ -106,6 +107,7 @@ export function scoreActivity(
 
   score += scoreEnergy(activity.energy, context.desiredEnergy, reasons)
   score += scoreBurden(activity, context, reasons)
+  score += scoreChildSignals(activity, household.children, reasons, cautions)
   score += scoreSchedulePreference(activity, context, reasons)
   score += scoreTimeOfDay(activity, context.nowMinutes, reasons)
   score += scoreFeedback(activity, household, context, reasons, cautions)
@@ -196,6 +198,90 @@ function scoreBurden(
 
   if (burdenRank[activity.cleanupBurden] <= 1) {
     score += 4
+  }
+
+  return score
+}
+
+function scoreChildSignals(
+  activity: Activity,
+  children: ChildProfile[],
+  reasons: Set<string>,
+  cautions: Set<string>,
+): number {
+  let score = 0
+
+  for (const child of children) {
+    const signals = child.signals
+
+    if (activity.energy === signals.preferredEnergy) {
+      score += 6
+      reasons.add(`Matches ${child.name}'s usual energy pattern.`)
+    }
+
+    if (signals.interests.includes(activity.category)) {
+      score += 7
+      reasons.add(`Connects with ${child.name}'s interests.`)
+    }
+
+    if (signals.transitionNeed === 'sensitive') {
+      if (
+        burdenRank[activity.setupBurden] <= 1 &&
+        burdenRank[activity.cleanupBurden] <= 1
+      ) {
+        score += 5
+        reasons.add(`Gentle transition fit for ${child.name}.`)
+      } else if (burdenRank[activity.setupBurden] >= 2) {
+        score -= 7
+        cautions.add(`${child.name} may need transition support.`)
+      }
+    }
+
+    if (
+      signals.independence === 'independent' &&
+      activity.supervision === 'independent'
+    ) {
+      score += 5
+      reasons.add(`Supports ${child.name}'s independence.`)
+    }
+
+    if (signals.independence === 'together' && activity.supervision === 'active') {
+      score += 5
+      reasons.add(`Builds in parent connection for ${child.name}.`)
+    }
+
+    if (burdenRank[activity.messLevel] > burdenRank[signals.messTolerance]) {
+      const gap = burdenRank[activity.messLevel] - burdenRank[signals.messTolerance]
+      score -= gap * 7
+      cautions.add(`${child.name}'s mess tolerance may be stretched.`)
+    }
+
+    if (
+      signals.sensoryNeed === 'low-stimulus' &&
+      (activity.energy === 'calm' ||
+        activity.category === 'reading' ||
+        activity.category === 'creative')
+    ) {
+      score += 4
+    }
+
+    if (
+      signals.sensoryNeed === 'low-stimulus' &&
+      (activity.energy === 'active' || activity.category === 'sensory')
+    ) {
+      score -= 6
+      cautions.add(`${child.name} may need a quieter option.`)
+    }
+
+    if (
+      signals.sensoryNeed === 'sensory-seeking' &&
+      (activity.energy === 'active' ||
+        activity.category === 'movement' ||
+        activity.category === 'sensory')
+    ) {
+      score += 5
+      reasons.add(`Gives ${child.name} more sensory input.`)
+    }
   }
 
   return score
