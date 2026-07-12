@@ -77,6 +77,8 @@ The MVP should answer three questions well:
 - Daily rhythm templates
 - Today schedule
 - Activity queue
+- Family organizer basics: groceries, to-dos, meal plan, and caregiver notes
+- Local household account gate
 - Parent feedback
 - Basic whole-child pattern learning
 - Local persistence
@@ -85,8 +87,8 @@ The MVP should answer three questions well:
 
 ### Excluded Initially
 
-- Accounts
 - Cross-device sync
+- Cloud-backed production accounts
 - Public sharing
 - AI-generated activities as a core dependency
 - In-app purchases
@@ -94,28 +96,30 @@ The MVP should answer three questions well:
 - School integrations
 - Calendar integrations
 - Push notifications
+- Third-party behavioral analytics, ad pixels, or paid CMS/theme dependencies
 
 ## 5. Core User Flows
 
 ### Flow A: First-Time Setup
 
-1. Parent adds household name or skips.
-2. Parent adds child profiles with age range and broad preference signals.
-3. Parent selects constraints:
+1. Parent creates a household account before seeing planner data.
+2. Parent adds household name or confirms the account household name.
+3. Parent adds child profiles with age range and broad preference signals.
+4. Parent selects constraints:
    - typical wake time
    - quiet time or nap window
    - meal windows
    - screen-time rules
    - indoor/outdoor availability
    - supervision availability
-4. Parent selects whole-child signals:
+5. Parent selects whole-child signals:
    - energy patterns
    - transition sensitivity
    - independence level
    - sensory and mess tolerance
    - current interests
-5. Parent selects supplies already available at home.
-6. App creates a starter daily rhythm and queue.
+6. Parent selects supplies already available at home.
+7. App creates a starter daily rhythm and queue.
 
 Success criteria:
 
@@ -298,7 +302,8 @@ Rules:
 MVP privacy posture:
 
 - Store data locally by default.
-- Require no account.
+- Require a local household account gate before showing planner data.
+- Do not require cloud accounts or sync for the MVP.
 - Make export and delete obvious.
 - Avoid child photos, precise location, and unnecessary birthdates.
 - Use age range instead of exact birthday unless required later.
@@ -318,6 +323,7 @@ Primary views:
 
 - Today
 - Schedule
+- Family Hub
 - Activities
 - Household
 - Insights
@@ -347,6 +353,18 @@ Components:
 - rhythm templates
 - lock/flexible toggle
 - reschedule controls
+
+### Family Hub View
+
+Purpose: keep the practical household context parents already manage nearby.
+
+Components:
+
+- grocery list
+- family to-dos
+- meal plan
+- caregiver handoff notes
+- local edit/delete controls
 
 ### Activities View
 
@@ -414,9 +432,13 @@ Initial architecture:
 
 Avoid:
 
+- copying competitor branding, proprietary UI, or content
+- old WordPress/plugin stacks for the app shell
+- paid themes such as Divi for MVP functionality
+- analytics scripts such as Clicky, Google Analytics UA, comScore, ScorecardResearch, Optimizely, or Facebook Pixel
 - backend before sync is needed
 - LLM calls in the critical path
-- complex auth
+- complex cloud auth before backend or sync is needed
 - overbuilt calendar integration
 - generalized plugin systems
 

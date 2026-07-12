@@ -98,6 +98,32 @@ export interface HouseholdProfile {
   recentlyCompleted: RecentActivity[]
 }
 
+export interface OrganizerItem {
+  id: string
+  text: string
+  completed: boolean
+}
+
+export interface MealPlanEntry {
+  id: string
+  dayLabel: string
+  meal: string
+  notes?: string
+}
+
+export interface FamilyNote {
+  id: string
+  title: string
+  body: string
+}
+
+export interface FamilyOrganizer {
+  groceryItems: OrganizerItem[]
+  todoItems: OrganizerItem[]
+  mealPlan: MealPlanEntry[]
+  notes: FamilyNote[]
+}
+
 export type ScheduleBlockType =
   | 'fixed'
   | 'guided'

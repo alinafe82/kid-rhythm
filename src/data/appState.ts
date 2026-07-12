@@ -1,9 +1,13 @@
-import { demoHousehold, initialSchedule } from './demoHousehold'
+import { demoHousehold, demoOrganizer, initialSchedule } from './demoHousehold'
 import type {
   ActivityCategory,
   ChildProfile,
   ChildSignals,
+  FamilyNote,
+  FamilyOrganizer,
   HouseholdProfile,
+  MealPlanEntry,
+  OrganizerItem,
   ScheduleBlock,
 } from '../domain/types'
 
@@ -11,6 +15,7 @@ export const APP_STATE_STORAGE_KEY = 'kidrhythm:v1'
 
 export interface AppState {
   household: HouseholdProfile
+  organizer: FamilyOrganizer
   schedule: ScheduleBlock[]
 }
 
@@ -41,6 +46,7 @@ const activityCategories = [
 export function createDefaultAppState(): AppState {
   return cloneState({
     household: demoHousehold,
+    organizer: demoOrganizer,
     schedule: initialSchedule,
   })
 }
@@ -62,6 +68,7 @@ export function loadAppState(storage: StorageLike | undefined): AppState {
 
     return {
       household: normalizeHousehold(parsed.household, fallback.household),
+      organizer: normalizeOrganizer(parsed.organizer, fallback.organizer),
       schedule: normalizeSchedule(parsed.schedule, fallback.schedule),
     }
   } catch {
@@ -186,6 +193,99 @@ function normalizeSchedule(
   fallback: ScheduleBlock[],
 ): ScheduleBlock[] {
   return Array.isArray(schedule) && schedule.length > 0 ? schedule : fallback
+}
+
+function normalizeOrganizer(
+  organizer: unknown,
+  fallback: FamilyOrganizer,
+): FamilyOrganizer {
+  if (!isRecord(organizer)) {
+    return fallback
+  }
+
+  return {
+    groceryItems: Array.isArray(organizer.groceryItems)
+      ? organizer.groceryItems
+          .map(normalizeOrganizerItem)
+          .filter((item): item is OrganizerItem => Boolean(item))
+      : fallback.groceryItems,
+    todoItems: Array.isArray(organizer.todoItems)
+      ? organizer.todoItems
+          .map(normalizeOrganizerItem)
+          .filter((item): item is OrganizerItem => Boolean(item))
+      : fallback.todoItems,
+    mealPlan: Array.isArray(organizer.mealPlan)
+      ? organizer.mealPlan
+          .map(normalizeMealPlanEntry)
+          .filter((entry): entry is MealPlanEntry => Boolean(entry))
+      : fallback.mealPlan,
+    notes: Array.isArray(organizer.notes)
+      ? organizer.notes
+          .map(normalizeFamilyNote)
+          .filter((note): note is FamilyNote => Boolean(note))
+      : fallback.notes,
+  }
+}
+
+function normalizeOrganizerItem(item: unknown): OrganizerItem | undefined {
+  if (!isRecord(item)) {
+    return undefined
+  }
+
+  const text = typeof item.text === 'string' ? item.text.trim() : ''
+
+  if (!text) {
+    return undefined
+  }
+
+  return {
+    id: typeof item.id === 'string' ? item.id : `item-${Date.now()}`,
+    text,
+    completed: typeof item.completed === 'boolean' ? item.completed : false,
+  }
+}
+
+function normalizeMealPlanEntry(entry: unknown): MealPlanEntry | undefined {
+  if (!isRecord(entry)) {
+    return undefined
+  }
+
+  const dayLabel =
+    typeof entry.dayLabel === 'string' ? entry.dayLabel.trim() : ''
+  const meal = typeof entry.meal === 'string' ? entry.meal.trim() : ''
+
+  if (!dayLabel || !meal) {
+    return undefined
+  }
+
+  return {
+    id: typeof entry.id === 'string' ? entry.id : `meal-${Date.now()}`,
+    dayLabel,
+    meal,
+    notes:
+      typeof entry.notes === 'string' && entry.notes.trim()
+        ? entry.notes.trim()
+        : undefined,
+  }
+}
+
+function normalizeFamilyNote(note: unknown): FamilyNote | undefined {
+  if (!isRecord(note)) {
+    return undefined
+  }
+
+  const title = typeof note.title === 'string' ? note.title.trim() : ''
+  const body = typeof note.body === 'string' ? note.body.trim() : ''
+
+  if (!title || !body) {
+    return undefined
+  }
+
+  return {
+    id: typeof note.id === 'string' ? note.id : `note-${Date.now()}`,
+    title,
+    body,
+  }
 }
 
 function cloneState(state: AppState): AppState {
