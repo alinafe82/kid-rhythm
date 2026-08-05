@@ -26,15 +26,18 @@ import {
 import { demoNowMinutes } from './data/demoHousehold'
 import { seedActivities } from './data/seedActivities'
 import {
-  assignActivityToBlock,
   findCurrentBlock,
   findNextFlexibleBlock,
   formatTime,
   getAvailableMinutes,
   toMinutes,
-  updateBlockStatus,
 } from './domain/schedule'
-import { getTimePeriod, rankActivities } from './domain/recommendation'
+import { rankActivities } from './domain/recommendation'
+import {
+  applyPlannerAction,
+  type OrganizerItemListName,
+  type PlannerAction,
+} from './domain/planner'
 import type {
   Activity,
   ActivityCategory,
@@ -93,7 +96,6 @@ const allSupplies = Array.from(
   new Set(seedActivities.flatMap((activity) => activity.supplies)),
 ).sort()
 
-type OrganizerItemListName = 'groceryItems' | 'todoItems'
 type AuthState = {
   account: LocalAccount | null
   session: AccountSession | null
@@ -265,33 +267,18 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     selectedActivity.id,
   )
 
+  const dispatchPlanner = (action: PlannerAction) => {
+    setAppState((current) => applyPlannerAction(current, action))
+  }
+
   const recordFeedback = (activity: Activity, rating: FeedbackRating) => {
-    setAppState((current) => ({
-      ...current,
-      household: {
-        ...current.household,
-        feedback: [
-          {
-            activityId: activity.id,
-            rating,
-            contextPeriod: getTimePeriod(nowMinutes),
-            timestamp: new Date().toISOString(),
-          },
-          ...current.household.feedback,
-        ],
-        recentlyCompleted:
-          rating === 'worked'
-            ? [
-                {
-                  activityId: activity.id,
-                  category: activity.category,
-                  completedAtMinutesAgo: 0,
-                },
-                ...current.household.recentlyCompleted,
-              ]
-            : current.household.recentlyCompleted,
-      },
-    }))
+    dispatchPlanner({
+      type: 'record-feedback',
+      activity,
+      rating,
+      nowMinutes,
+      timestamp: new Date().toISOString(),
+    })
   }
 
   const scheduleActivity = (activity: Activity) => {
@@ -300,14 +287,11 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     }
 
     setSelectedActivityId(activity.id)
-    setAppState((current) => ({
-      ...current,
-      schedule: assignActivityToBlock(
-        current.schedule,
-        activeBlock.id,
-        activity.id,
-      ),
-    }))
+    dispatchPlanner({
+      type: 'schedule-activity',
+      blockId: activeBlock.id,
+      activityId: activity.id,
+    })
   }
 
   const startActivity = (activity: Activity) => {
@@ -316,123 +300,46 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     }
 
     setSelectedActivityId(activity.id)
-    setAppState((current) => ({
-      ...current,
-      schedule: updateBlockStatus(
-        assignActivityToBlock(current.schedule, activeBlock.id, activity.id),
-        activeBlock.id,
-        'active',
-      ),
-    }))
-  }
-
-  const updateHousehold = (
-    update: (household: HouseholdProfile) => HouseholdProfile,
-  ) => {
-    setAppState((current) => ({
-      ...current,
-      household: update(current.household),
-    }))
-  }
-
-  const updateOrganizer = (
-    update: (organizer: FamilyOrganizer) => FamilyOrganizer,
-  ) => {
-    setAppState((current) => ({
-      ...current,
-      organizer: update(current.organizer),
-    }))
+    dispatchPlanner({
+      type: 'start-activity',
+      blockId: activeBlock.id,
+      activityId: activity.id,
+    })
   }
 
   const updateChild = (childId: string, patch: Partial<ChildProfile>) => {
-    updateHousehold((current) => ({
-      ...current,
-      children: current.children.map((child) =>
-        child.id === childId ? { ...child, ...patch } : child,
-      ),
-    }))
+    dispatchPlanner({ type: 'update-child', childId, patch })
   }
 
   const addChild = () => {
-    updateHousehold((current) => ({
-      ...current,
-      children: [
-        ...current.children,
-        {
-          id: `child-${Date.now()}`,
-          name: 'New child',
-          age: 6,
-          signals: createDefaultChildSignals(),
-        },
-      ],
-    }))
+    dispatchPlanner({
+      type: 'add-child',
+      child: {
+        id: `child-${Date.now()}`,
+        name: 'New child',
+        age: 6,
+        signals: createDefaultChildSignals(),
+      },
+    })
   }
 
   const updateChildSignals = (
     childId: string,
     patch: Partial<ChildSignals>,
   ) => {
-    updateHousehold((current) => ({
-      ...current,
-      children: current.children.map((child) =>
-        child.id === childId
-          ? {
-              ...child,
-              signals: {
-                ...child.signals,
-                ...patch,
-              },
-            }
-          : child,
-      ),
-    }))
+    dispatchPlanner({ type: 'update-child-signals', childId, patch })
   }
 
   const toggleChildInterest = (childId: string, category: ActivityCategory) => {
-    updateHousehold((current) => ({
-      ...current,
-      children: current.children.map((child) => {
-        if (child.id !== childId) {
-          return child
-        }
-
-        const hasInterest = child.signals.interests.includes(category)
-
-        return {
-          ...child,
-          signals: {
-            ...child.signals,
-            interests: hasInterest
-              ? child.signals.interests.filter((item) => item !== category)
-              : [...child.signals.interests, category].sort(),
-          },
-        }
-      }),
-    }))
+    dispatchPlanner({ type: 'toggle-child-interest', childId, category })
   }
 
   const removeChild = (childId: string) => {
-    updateHousehold((current) =>
-      current.children.length === 1
-        ? current
-        : {
-            ...current,
-            children: current.children.filter((child) => child.id !== childId),
-          },
-    )
+    dispatchPlanner({ type: 'remove-child', childId })
   }
 
   const toggleSupply = (supply: string) => {
-    updateHousehold((current) => {
-      const hasSupply = current.availableSupplies.includes(supply)
-
-      return {
-        ...current,
-        availableSupplies: hasSupply
-          ? current.availableSupplies.filter((item) => item !== supply)
-          : [...current.availableSupplies, supply].sort(),
-      }
-    })
+    dispatchPlanner({ type: 'toggle-supply', supply })
   }
 
   const addOrganizerItem = (listName: OrganizerItemListName, text: string) => {
@@ -442,17 +349,12 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
       return
     }
 
-    updateOrganizer((current) => ({
-      ...current,
-      [listName]: [
-        ...current[listName],
-        {
-          id: createLocalId(listName),
-          text: trimmed,
-          completed: false,
-        },
-      ],
-    }))
+    dispatchPlanner({
+      type: 'add-organizer-item',
+      listName,
+      id: createLocalId(listName),
+      text: trimmed,
+    })
 
     if (listName === 'groceryItems') {
       setGroceryText('')
@@ -465,22 +367,14 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     listName: OrganizerItemListName,
     itemId: string,
   ) => {
-    updateOrganizer((current) => ({
-      ...current,
-      [listName]: current[listName].map((item) =>
-        item.id === itemId ? { ...item, completed: !item.completed } : item,
-      ),
-    }))
+    dispatchPlanner({ type: 'toggle-organizer-item', listName, itemId })
   }
 
   const removeOrganizerItem = (
     listName: OrganizerItemListName,
     itemId: string,
   ) => {
-    updateOrganizer((current) => ({
-      ...current,
-      [listName]: current[listName].filter((item) => item.id !== itemId),
-    }))
+    dispatchPlanner({ type: 'remove-organizer-item', listName, itemId })
   }
 
   const addMealPlanEntry = () => {
@@ -491,28 +385,22 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
       return
     }
 
-    updateOrganizer((current) => ({
-      ...current,
-      mealPlan: [
-        ...current.mealPlan,
-        {
-          id: createLocalId('meal'),
-          dayLabel,
-          meal,
-          notes: mealNotesText.trim() || undefined,
-        },
-      ],
-    }))
+    dispatchPlanner({
+      type: 'add-meal',
+      entry: {
+        id: createLocalId('meal'),
+        dayLabel,
+        meal,
+        notes: mealNotesText.trim() || undefined,
+      },
+    })
     setMealDayText('')
     setMealText('')
     setMealNotesText('')
   }
 
   const removeMealPlanEntry = (entryId: string) => {
-    updateOrganizer((current) => ({
-      ...current,
-      mealPlan: current.mealPlan.filter((entry) => entry.id !== entryId),
-    }))
+    dispatchPlanner({ type: 'remove-meal', entryId })
   }
 
   const addFamilyNote = () => {
@@ -523,39 +411,20 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
       return
     }
 
-    updateOrganizer((current) => ({
-      ...current,
-      notes: [
-        ...current.notes,
-        {
-          id: createLocalId('note'),
-          title,
-          body,
-        },
-      ],
-    }))
+    dispatchPlanner({
+      type: 'add-note',
+      note: { id: createLocalId('note'), title, body },
+    })
     setNoteTitleText('')
     setNoteBodyText('')
   }
 
   const removeFamilyNote = (noteId: string) => {
-    updateOrganizer((current) => ({
-      ...current,
-      notes: current.notes.filter((note) => note.id !== noteId),
-    }))
+    dispatchPlanner({ type: 'remove-note', noteId })
   }
 
   const toggleBlockedActivity = (activityId: string) => {
-    updateHousehold((current) => {
-      const isBlocked = current.blockedActivityIds.includes(activityId)
-
-      return {
-        ...current,
-        blockedActivityIds: isBlocked
-          ? current.blockedActivityIds.filter((id) => id !== activityId)
-          : [...current.blockedActivityIds, activityId],
-      }
-    })
+    dispatchPlanner({ type: 'toggle-blocked-activity', activityId })
   }
 
   const resetLocalData = () => {
