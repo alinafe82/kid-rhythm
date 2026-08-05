@@ -144,3 +144,10 @@ Repository state:
 - `npm test`: passed, 44 tests.
 - `npm run build`: passed.
 - Next product task remains one of the tracks listed above; no feature work was started in this maintenance pass.
+
+## 2026-08-04 Planner Architecture Handoff
+
+- Moved household, schedule, feedback, and Family Hub state transitions behind the pure `applyPlannerAction` interface in `src/domain/planner.ts`.
+- React now owns rendering and transient form state; persisted planner invariants live in the domain module and are tested through its public interface.
+- Added planner transition coverage while retaining the enforced 100% domain/data coverage gate.
+- Verification: `npm run lint`, `npm run build`, and `npm run test:coverage` pass (51 tests, 100% statements/branches/functions/lines).
