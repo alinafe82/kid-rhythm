@@ -94,4 +94,20 @@ describe('schedule helpers', () => {
     expect(formatTime(toMinutes('00:00'))).toBe('12:00 AM')
     expect(formatTime(toMinutes('12:00'))).toBe('12:00 PM')
   })
+
+  it.each(['not-a-time', '24:00', '12:60', '-1:30'])(
+    'rejects invalid schedule time %s',
+    (time) => {
+      expect(() => toMinutes(time)).toThrow('Time must be between 00:00 and 23:59')
+    },
+  )
+
+  it.each([-1, 1440, Number.NaN, 12.5])(
+    'rejects invalid minute value %s',
+    (minutes) => {
+      expect(() => formatTime(minutes)).toThrow(
+        'Minutes must be a whole number between 0 and 1439',
+      )
+    },
+  )
 })
