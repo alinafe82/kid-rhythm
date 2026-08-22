@@ -1,11 +1,22 @@
 import type { ScheduleBlock, ScheduleBlockStatus } from './types'
 
 export function toMinutes(time: string): number {
-  const [hours = '0', minutes = '0'] = time.split(':')
-  return Number(hours) * 60 + Number(minutes)
+  const match = /^(\d{1,2})(?::(\d{2}))?$/.exec(time)
+  const hours = Number(match?.[1])
+  const minutes = Number(match?.[2] ?? 0)
+
+  if (!match || hours > 23 || minutes > 59) {
+    throw new RangeError('Time must be between 00:00 and 23:59')
+  }
+
+  return hours * 60 + minutes
 }
 
 export function formatTime(minutes: number): string {
+  if (!Number.isInteger(minutes) || minutes < 0 || minutes >= 24 * 60) {
+    throw new RangeError('Minutes must be a whole number between 0 and 1439')
+  }
+
   const hour24 = Math.floor(minutes / 60)
   const minute = minutes % 60
   const suffix = hour24 >= 12 ? 'PM' : 'AM'
@@ -79,4 +90,3 @@ export function updateBlockStatus(
       : block,
   )
 }
-

@@ -151,3 +151,12 @@ Repository state:
 - React now owns rendering and transient form state; persisted planner invariants live in the domain module and are tested through its public interface.
 - Added planner transition coverage while retaining the enforced 100% domain/data coverage gate.
 - Verification: `npm run lint`, `npm run build`, and `npm run test:coverage` pass (51 tests, 100% statements/branches/functions/lines).
+
+## 2026-08-22 Schedule Boundary Handoff
+
+- Schedule time parsing now rejects malformed values and times outside `00:00` through
+  `23:59` instead of allowing `NaN` or out-of-day minutes into planner state.
+- Display-time formatting now rejects negative, fractional, non-numeric, and next-day minute
+  values instead of producing misleading labels.
+- The public `toMinutes` and `formatTime` helpers retain compact whole-hour input such as `7`.
+- Verification: `npm test`, `npm run test:coverage`, `npm run lint`, and `npm run build`.
