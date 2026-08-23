@@ -2,11 +2,11 @@
 
 ## Scope
 
-+React/Tauri application: dependency audit, lint, coverage-gated tests, production web build, Rust checks, and secret scanning.
+React/Tauri application: dependency audit, lint, coverage-gated tests, production web build, Rust checks, and secret scanning.
 
 ## Required pull-request checks
 
-+- `CI`
+- `CI`
 - `Secret Scan`
 
 Do not merge while a required check is failing, pending, or cancelled. Re-run a
