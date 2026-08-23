@@ -40,3 +40,11 @@ For a failure:
 - Concurrency cancels stale pull-request work where safe.
 - Jobs have timeouts so hung runners do not consume capacity indefinitely.
 - Dependabot updates workflow actions and package ecosystems where applicable.
+
+## Zero-cost execution policy
+
+GitHub-hosted Actions are intentionally disabled while this repository is private because
+private-repository minutes can become billable. The hardened workflow definitions remain as
+the executable pipeline specification. Run the repository-specific commands above locally;
+enable the workflows only after making the repository public or attaching a trusted
+self-hosted runner. The account-level Actions budget remains at a hard $0 limit.
