@@ -160,3 +160,14 @@ Repository state:
   values instead of producing misleading labels.
 - The public `toMinutes` and `formatTime` helpers retain compact whole-hour input such as `7`.
 - Verification: `npm test`, `npm run test:coverage`, `npm run lint`, and `npm run build`.
+
+## 2026-08-23 CI/CD Handoff
+
+- Added separate web and Tauri checks with locked dependencies, dependency audit,
+  lint, enforced domain/data coverage, production build, Rust formatting, compile,
+  and tests.
+- Added weekly dependency updates for npm, Cargo, and GitHub Actions.
+- Added weekly full-history secret scanning and durable failure/recovery issues.
+- GitHub Actions email notifications are configured for failed workflows only.
+- Verification commands are recorded in `docs/ci-cd.md`; live GitHub checks are the
+  final authority for the macOS runner.
