@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import {
   clearSession,
@@ -99,6 +99,12 @@ const allSupplies = Array.from(
 type AuthState = {
   account: LocalAccount | null
   session: AccountSession | null
+}
+
+type PlannerNotice = {
+  id: number
+  message: string
+  onUndo?: () => void
 }
 
 const emptyAccountForm: AccountInput = {
@@ -220,6 +226,7 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
   const [mealNotesText, setMealNotesText] = useState('')
   const [noteTitleText, setNoteTitleText] = useState('')
   const [noteBodyText, setNoteBodyText] = useState('')
+  const [notice, setNotice] = useState<PlannerNotice | null>(null)
 
   useEffect(() => {
     saveAppState(getBrowserStorage(), appState)
@@ -271,6 +278,15 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     setAppState((current) => applyPlannerAction(current, action))
   }
 
+  const showNotice = (message: string, onUndo?: () => void) => {
+    setNotice({ id: Date.now(), message, onUndo })
+  }
+
+  const undoNotice = () => {
+    notice?.onUndo?.()
+    setNotice({ id: Date.now(), message: 'Change undone.' })
+  }
+
   const recordFeedback = (activity: Activity, rating: FeedbackRating) => {
     dispatchPlanner({
       type: 'record-feedback',
@@ -279,10 +295,22 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
       nowMinutes,
       timestamp: new Date().toISOString(),
     })
+
+    const feedbackMessages: Record<FeedbackRating, string> = {
+      worked: `Saved: ${activity.title} worked well. Future suggestions will use that.`,
+      'too-hard': `Saved: ${activity.title} felt too hard.`,
+      'too-messy': `Saved: ${activity.title} was too messy.`,
+      'too-much-supervision': `Saved: ${activity.title} needed too much help.`,
+      disliked: `Saved: ${activity.title} was not a good fit.`,
+      'try-later': `${activity.title} saved for later. Future suggestions will favor other options.`,
+    }
+
+    showNotice(feedbackMessages[rating])
   }
 
   const scheduleActivity = (activity: Activity) => {
     if (!activeBlock) {
+      showNotice('There is no open schedule block for this activity.')
       return
     }
 
@@ -292,10 +320,12 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
       blockId: activeBlock.id,
       activityId: activity.id,
     })
+    showNotice(`${activity.title} added to ${activeBlock.label}.`)
   }
 
   const startActivity = (activity: Activity) => {
     if (!activeBlock) {
+      showNotice('There is no active schedule block to start this activity.')
       return
     }
 
@@ -305,6 +335,7 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
       blockId: activeBlock.id,
       activityId: activity.id,
     })
+    showNotice(`${activity.title} started in ${activeBlock.label}.`)
   }
 
   const updateChild = (childId: string, patch: Partial<ChildProfile>) => {
@@ -321,6 +352,7 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
         signals: createDefaultChildSignals(),
       },
     })
+    showNotice('New child profile added.')
   }
 
   const updateChildSignals = (
@@ -335,7 +367,16 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
   }
 
   const removeChild = (childId: string) => {
+    const child = household.children.find((item) => item.id === childId)
+
+    if (!child) {
+      return
+    }
+
     dispatchPlanner({ type: 'remove-child', childId })
+    showNotice(`${child.name} removed.`, () =>
+      dispatchPlanner({ type: 'add-child', child }),
+    )
   }
 
   const toggleSupply = (supply: string) => {
@@ -358,8 +399,10 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
 
     if (listName === 'groceryItems') {
       setGroceryText('')
+      showNotice(`${trimmed} added to groceries.`)
     } else {
       setTodoText('')
+      showNotice(`${trimmed} added to family to-dos.`)
     }
   }
 
@@ -374,7 +417,25 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     listName: OrganizerItemListName,
     itemId: string,
   ) => {
+    const item = organizer[listName].find((entry) => entry.id === itemId)
+
+    if (!item) {
+      return
+    }
+
     dispatchPlanner({ type: 'remove-organizer-item', listName, itemId })
+    showNotice(`${item.text} removed.`, () => {
+      dispatchPlanner({
+        type: 'add-organizer-item',
+        listName,
+        id: item.id,
+        text: item.text,
+      })
+
+      if (item.completed) {
+        dispatchPlanner({ type: 'toggle-organizer-item', listName, itemId: item.id })
+      }
+    })
   }
 
   const addMealPlanEntry = () => {
@@ -397,10 +458,20 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     setMealDayText('')
     setMealText('')
     setMealNotesText('')
+    showNotice(`${meal} added to the meal plan.`)
   }
 
   const removeMealPlanEntry = (entryId: string) => {
+    const entry = organizer.mealPlan.find((item) => item.id === entryId)
+
+    if (!entry) {
+      return
+    }
+
     dispatchPlanner({ type: 'remove-meal', entryId })
+    showNotice(`${entry.meal} removed.`, () =>
+      dispatchPlanner({ type: 'add-meal', entry }),
+    )
   }
 
   const addFamilyNote = () => {
@@ -417,19 +488,44 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     })
     setNoteTitleText('')
     setNoteBodyText('')
+    showNotice(`${title} added to handoff notes.`)
   }
 
   const removeFamilyNote = (noteId: string) => {
+    const note = organizer.notes.find((item) => item.id === noteId)
+
+    if (!note) {
+      return
+    }
+
     dispatchPlanner({ type: 'remove-note', noteId })
+    showNotice(`${note.title} removed.`, () =>
+      dispatchPlanner({ type: 'add-note', note }),
+    )
   }
 
   const toggleBlockedActivity = (activityId: string) => {
+    const activity = activityById.get(activityId)
+    const willBlock = !household.blockedActivityIds.includes(activityId)
+
     dispatchPlanner({ type: 'toggle-blocked-activity', activityId })
+    showNotice(
+      `${activity?.title ?? 'Activity'} ${willBlock ? 'blocked' : 'unblocked'}.`,
+    )
   }
 
   const resetLocalData = () => {
+    const confirmed = window.confirm(
+      'Reset every child profile, schedule item, family list, and preference on this device?',
+    )
+
+    if (!confirmed) {
+      return
+    }
+
     clearAppState(getBrowserStorage())
     setAppState(createDefaultAppState())
+    showNotice('All planner data reset to the starter household.')
   }
 
   return (
@@ -531,7 +627,7 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
               <p className="eyebrow">Fit for right now</p>
               <h2>{primary?.activity.title ?? 'No strong match'}</h2>
             </div>
-            <span className="score">{primary?.score ?? 0}</span>
+            <span className="fit-badge">Best fit</span>
           </div>
 
           {primary ? (
@@ -836,7 +932,7 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
               <h2>Available</h2>
             </div>
             <button type="button" className="secondary" onClick={resetLocalData}>
-              Reset
+              Reset all data…
             </button>
           </div>
 
@@ -892,6 +988,25 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
           ))}
         </div>
       </section>
+
+      {notice ? (
+        <div key={notice.id} className="state-notice" role="status" aria-live="polite">
+          <span>{notice.message}</span>
+          {notice.onUndo ? (
+            <button type="button" className="notice-action" onClick={undoNotice}>
+              Undo
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="notice-dismiss"
+            aria-label="Dismiss notification"
+            onClick={() => setNotice(null)}
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
     </main>
   )
 }
@@ -914,6 +1029,26 @@ function AccountGate({
   onSignIn,
 }: AccountGateProps) {
   const isSignIn = Boolean(account)
+  const householdNameRef = useRef<HTMLInputElement>(null)
+  const emailRef = useRef<HTMLInputElement>(null)
+  const passcodeRef = useRef<HTMLInputElement>(null)
+  const invalidField = error.includes('household')
+    ? 'household'
+    : error.includes('email') || error.includes('Email')
+      ? 'email'
+      : error
+        ? 'passcode'
+        : null
+
+  useEffect(() => {
+    if (invalidField === 'household') {
+      householdNameRef.current?.focus()
+    } else if (invalidField === 'email') {
+      emailRef.current?.focus()
+    } else if (invalidField === 'passcode') {
+      passcodeRef.current?.focus()
+    }
+  }, [invalidField])
 
   return (
     <main className="auth-shell">
@@ -950,7 +1085,12 @@ function AccountGate({
             <label>
               <span>Household name</span>
               <input
+                ref={householdNameRef}
                 autoComplete="organization"
+                aria-describedby={invalidField === 'household' ? 'auth-error' : undefined}
+                aria-invalid={invalidField === 'household'}
+                name="householdName"
+                required
                 value={form.householdName}
                 onChange={(event) =>
                   onFormChange({ householdName: event.target.value })
@@ -962,7 +1102,13 @@ function AccountGate({
           <label>
             <span>Email</span>
             <input
+              ref={emailRef}
               autoComplete="email"
+              aria-describedby={invalidField === 'email' ? 'auth-error' : undefined}
+              aria-invalid={invalidField === 'email'}
+              name="email"
+              required
+              spellCheck={false}
               type="email"
               value={form.email}
               onChange={(event) => onFormChange({ email: event.target.value })}
@@ -972,7 +1118,13 @@ function AccountGate({
           <label>
             <span>Passcode</span>
             <input
+              ref={passcodeRef}
               autoComplete={isSignIn ? 'current-password' : 'new-password'}
+              aria-describedby={invalidField === 'passcode' ? 'auth-error' : undefined}
+              aria-invalid={invalidField === 'passcode'}
+              minLength={6}
+              name="passcode"
+              required
               type="password"
               value={form.passcode}
               onChange={(event) =>
@@ -982,7 +1134,7 @@ function AccountGate({
           </label>
 
           {error ? (
-            <p className="auth-error" role="alert">
+            <p className="auth-error" id="auth-error" role="alert">
               {error}
             </p>
           ) : null}
@@ -1533,6 +1685,7 @@ function SegmentedControl<T extends string>({
             key={option}
             type="button"
             className={option === value ? 'selected' : ''}
+            aria-pressed={option === value}
             onClick={() => onChange(option)}
           >
             {option}
