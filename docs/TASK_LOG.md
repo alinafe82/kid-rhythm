@@ -171,3 +171,24 @@ Repository state:
 - GitHub Actions email notifications are configured for failed workflows only.
 - Verification commands are recorded in `docs/ci-cd.md`; live GitHub checks are the
   final authority for the macOS runner.
+
+## 2026-08-24 Real-User UX Audit Handoff
+
+- Audited the local account, recommendation, scheduling, feedback, organizer, and
+  household flows in a running browser.
+- Replaced the unexplained numeric recommendation score with a plain-language
+  “Best fit” label.
+- Added an accessible live status notice for activity, feedback, organizer,
+  profile, and block-state changes, including undo for destructive list, meal,
+  note, and child removals.
+- Renamed the ambiguous supply-panel `Reset` action to `Reset all data…` and
+  added confirmation before clearing planner data.
+- Fixed account validation focus and field error relationships, added pressed
+  state semantics to segmented controls, and added visible link focus styles.
+- Reworked the desktop recommendation/detail layout to remove several screens
+  of dead space and repaired clipped child signal and interest controls.
+- Added restrained button/status transitions with reduced-motion handling and
+  sticky-header offsets for in-page navigation.
+- Browser verification passed for the compact layout, activity-start status,
+  reversible grocery removal, and reset confirmation guard.
+- Verification: `npm run lint`, `npm test` (59 tests), and `npm run build` pass.

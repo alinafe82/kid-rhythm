@@ -183,6 +183,13 @@
   color: var(--blue);
 }
 
+.site-nav a:focus-visible,
+.brand-link:focus-visible {
+  border-radius: 6px;
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .header-badge {
   border: 1px solid var(--teal-line);
   border-radius: 999px;
@@ -403,7 +410,8 @@ select {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
   gap: 18px;
   width: min(calc(100% - 64px), 1180px);
   max-width: 1180px;
@@ -435,8 +443,19 @@ select {
 
 .side-stack {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: start;
+  align-items: start;
   gap: 14px;
+}
+
+.schedule-panel {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+
+.schedule-panel .timeline {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .detail-panel {
@@ -494,12 +513,13 @@ select {
   margin-bottom: 12px;
 }
 
-.score {
+.fit-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
+  min-width: max-content;
   height: 40px;
+  padding: 0 12px;
   border-radius: 8px;
   background: var(--blue);
   color: var(--surface);
@@ -575,6 +595,12 @@ button {
   color: #ffffff;
   cursor: pointer;
   font-weight: 750;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    filter 160ms ease,
+    transform 120ms ease;
 }
 
 button.secondary,
@@ -587,6 +613,10 @@ button.secondary,
 
 button:hover {
   filter: brightness(0.97);
+}
+
+button:active {
+  transform: translateY(1px);
 }
 
 button:focus-visible,
@@ -646,7 +676,7 @@ select:focus-visible {
 
 .settings-band {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
   gap: 18px;
   width: min(calc(100% - 64px), 1180px);
   max-width: 1180px;
@@ -832,19 +862,19 @@ textarea {
 
 .supply-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .signal-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
 .interest-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -869,7 +899,66 @@ textarea {
 }
 
 .check-tile span {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+#today,
+#schedule,
+#family-hub,
+#household,
+#activities {
+  scroll-margin-top: 108px;
+}
+
+.state-notice {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(440px, calc(100% - 32px));
+  border: 1px solid var(--teal-line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--ink);
+  color: #ffffff;
+  box-shadow: var(--shadow);
+  animation: notice-in 180ms ease-out;
+}
+
+.state-notice span {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.state-notice button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  border-color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  color: #ffffff;
+}
+
+.state-notice .notice-dismiss {
+  width: 34px;
+  padding: 0;
+  border-color: transparent;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+@keyframes notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .detail-list {
@@ -1009,6 +1098,15 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .side-stack {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-panel {
+    grid-row: auto;
+    grid-column: auto;
+  }
+
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1055,6 +1153,13 @@ textarea {
     justify-content: space-between;
   }
 
+  .state-notice {
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    max-width: none;
+  }
+
   .hero-band {
     padding-top: 28px;
   }
@@ -1080,6 +1185,10 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .schedule-panel .timeline {
+    grid-template-columns: 1fr;
+  }
+
   .card-footer button {
     width: 100%;
     margin-left: 0;
@@ -1096,5 +1205,21 @@ textarea {
 
   .two-field-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  button {
+    transition: none;
+  }
+
+  .state-notice {
+    animation: none;
   }
 }
