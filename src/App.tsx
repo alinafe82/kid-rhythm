@@ -113,6 +113,35 @@ const emptyAccountForm: AccountInput = {
   passcode: '',
 }
 
+const accountGateSteps = [
+  {
+    number: '01',
+    title: 'Read the room',
+    description:
+      'Pick the day part, mood, supervision level, mess tolerance, and whether fresh air fits.',
+  },
+  {
+    number: '02',
+    title: 'Pick a play lane',
+    description:
+      'Balance movement, building, making, stories, sensory load, time, and supplies already nearby.',
+  },
+  {
+    number: '03',
+    title: 'Know why it fits',
+    description:
+      'Show age fit, setup effort, cleanup load, supervision, safety notes, and the reason for the match.',
+  },
+  {
+    number: '04',
+    title: 'Tune the rhythm',
+    description:
+      'Skip, swap, schedule, or mark feedback so the next idea feels better for the household.',
+  },
+]
+
+const accountGateSignals = ['Build', 'Wiggle', 'Create', 'Story']
+
 function App() {
   const [authState, setAuthState] = useState<AuthState>(() =>
     loadInitialAuth(getBrowserStorage()),
@@ -1058,24 +1087,75 @@ function AccountGate({
             <span className="brand-mark">K</span>
             <span>KidRhythm</span>
           </div>
-          <p className="eyebrow">Parent account</p>
+          <p className="eyebrow">Household setup concierge</p>
           <h1 id="auth-title">
             {isSignIn
-              ? `Sign in to ${account?.householdName}`
-              : 'Create a household account'}
+              ? `Welcome back to ${account?.householdName}`
+              : 'A calmer rhythm for real family days.'}
           </h1>
           <p className="auth-copy">
-            The planner, children, schedule, and family lists stay behind this
-            parent gate on the current device.
+            Plan at-home play around your child's energy, attention, available
+            time, supplies, and household constraints, with clear reasons
+            parents can adjust quickly.
           </p>
+
+          <div className="auth-command-strip" aria-label="Primary setup path">
+            <div>
+              <span>What do you need to do next?</span>
+              <strong>{isSignIn ? 'Open your household' : 'Create a private household'}</strong>
+            </div>
+            <p>Energy | mess | setup | supplies</p>
+          </div>
+
+          <div className="auth-signal-board" aria-label="Activity signal preview">
+            <div className="auth-signal-visual">
+              <span>KR</span>
+              <small>Play cues</small>
+              <div aria-hidden="true" className="auth-signal-lines">
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+              </div>
+            </div>
+            <div className="auth-mode-tags" aria-label="Example activity modes">
+              {accountGateSignals.map((signal) => (
+                <span key={signal}>{signal}</span>
+              ))}
+            </div>
+          </div>
+
+          <ol className="auth-step-list" aria-label="Setup steps">
+            {accountGateSteps.map((step) => (
+              <li key={step.number}>
+                <span>{step.number}</span>
+                <div>
+                  <strong>{step.title}</strong>
+                  <p>{step.description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+
           <div className="auth-promises" aria-label="Privacy commitments">
-            <span>Local account</span>
-            <span>No ad pixels</span>
+            <span>Local household data</span>
+            <span>Clear fit reasons</span>
             <span>Parent-controlled</span>
           </div>
         </div>
 
         <form className="auth-form" onSubmit={isSignIn ? onSignIn : onCreate}>
+          <div className="auth-form-heading">
+            <p className="eyebrow">{isSignIn ? 'Welcome back' : 'Step one'}</p>
+            <h2>{isSignIn ? 'Open your household' : 'Name your household'}</h2>
+            <p>
+              {isSignIn
+                ? 'Use the local details saved on this device.'
+                : 'You can add children, routines, and preferences next.'}
+            </p>
+          </div>
+
           {isSignIn ? (
             <div className="auth-account-summary">
               <span>Household</span>
