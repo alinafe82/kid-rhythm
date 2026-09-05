@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Status: KidRhythm has a working local-first whole-child recommendation, household organizer, and local household account gate.
+Status: KidRhythm has a working local-first whole-child recommendation, household organizer, local household account gate, and production-only GA4 page measurement for the public web shell.
 
 Project path:
 
@@ -12,7 +12,7 @@ Project path:
 
 ## Active Task
 
-Completed this session: added account gating so the planner is not exposed before a parent creates or signs into a household account.
+Completed this session: removed the repo-local `AGENTS.md` instructions and added production HTTPS-only GA4 page measurement for the public web shell.
 
 ## Completed
 
@@ -56,6 +56,9 @@ Completed this session: added account gating so the planner is not exposed befor
 - Gated the planner UI so the account screen renders first and the planner does not mount until a local account session exists.
 - Added sign out behavior that clears the local session without deleting household planner data.
 - Added account persistence tests for create, sign-in verification, clearing, missing storage, malformed records, and session mismatch cases.
+- Removed repo-local Codex instructions after owner override.
+- Added a same-origin GA4 page measurement loader for production HTTPS web visits.
+- Added a Vitest contract test to keep analytics page-view-only and data-minimal.
 
 ## Key Decisions
 
@@ -74,7 +77,8 @@ Completed this session: added account gating so the planner is not exposed befor
 - Better routines are the product outcome.
 - Whole-child signals must stay parent-controlled, practical, and non-diagnostic.
 - Cozi is a useful benchmark for family operations, but KidRhythm should not copy Cozi branding, proprietary content, or tracking stack.
-- MVP family organizer features should use the existing free React/Vite/localStorage stack instead of WordPress 5.1.1, Divi, paid plugins, or analytics pixels.
+- MVP family organizer features should use the existing free React/Vite/localStorage stack instead of WordPress 5.1.1, Divi, paid plugins, or child-behavior analytics pixels.
+- Production public web builds may use GA4 page measurement, but KidRhythm must not send planner data, child profiles, schedules, feedback, account records, or local storage values to analytics.
 - The enforced 100% coverage gate applies to deterministic core logic in `src/domain` and `src/data`; UI coverage should wait for a browser/React test harness.
 - Visual direction should benchmark Cozi's family organizer clarity while using original KidRhythm branding, local-first privacy, and no third-party tracking or paid theme dependencies.
 - The MVP account gate is local-only and free: it hides household data on the current device, but it is not production cloud authentication or cross-device identity.

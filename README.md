@@ -55,3 +55,9 @@ AI should be optional and subordinate to product logic. The MVP can work without
 ## Current Slice
 
 The app currently includes a Today view backed by deterministic scoring, seed activity data, basic schedule blocks, whole-child signal controls, parent-visible fit insights, editable child/supply data, feedback actions, local persistence, and unit tests for recommendation, schedule, and persistence logic.
+
+## Public Analytics
+
+The production HTTPS web shell loads a same-origin GA4 page measurement script using measurement ID `G-2VT1V5192S`. The loader disables Google signals and ad personalization signals, and it does not read or send household planner data, child profiles, schedules, feedback, account records, or local storage values.
+
+The analytics loader exits outside HTTPS production contexts, so local development and desktop/Tauri runs remain local-first.

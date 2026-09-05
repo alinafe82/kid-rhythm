@@ -1,5 +1,5 @@
 const CACHE_NAME = 'kidrhythm-shell-v1'
-const APP_SHELL = ['/', '/favicon.svg', '/manifest.webmanifest']
+const APP_SHELL = ['/', '/analytics.js', '/favicon.svg', '/manifest.webmanifest']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)))
