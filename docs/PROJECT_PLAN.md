@@ -309,6 +309,9 @@ MVP privacy posture:
 - Use age range instead of exact birthday unless required later.
 - Do not sell or share household behavior data.
 - Do not include ads to children.
+- Production HTTPS web builds may use aggregate GA4 page measurement, but the
+  app must not send child profiles, schedules, feedback, account records, or
+  local storage values to analytics.
 
 Safety posture:
 
@@ -435,7 +438,10 @@ Avoid:
 - copying competitor branding, proprietary UI, or content
 - old WordPress/plugin stacks for the app shell
 - paid themes such as Divi for MVP functionality
-- analytics scripts such as Clicky, Google Analytics UA, comScore, ScorecardResearch, Optimizely, or Facebook Pixel
+- behavioral analytics and ad pixels such as Clicky, Google Analytics UA,
+  comScore, ScorecardResearch, Optimizely, or Facebook Pixel; if public
+  measurement is needed, use the approved GA4 page-view loader without custom
+  household events
 - backend before sync is needed
 - LLM calls in the critical path
 - complex cloud auth before backend or sync is needed
