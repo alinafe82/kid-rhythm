@@ -6,7 +6,7 @@ import { applyPlannerAction } from './planner'
 describe('planner state transitions', () => {
   it('starts an activity and records successful feedback through one interface', () => {
     const initial = createDefaultAppState()
-    const blockId = initial.schedule[0].id
+    const blockId = initial.schedule.find((block) => !block.locked && block.type !== 'fixed')!.id
     const activity = seedActivities[0]
 
     const started = applyPlannerAction(initial, {
@@ -22,7 +22,7 @@ describe('planner state transitions', () => {
       timestamp: '2026-08-04T18:40:00.000Z',
     })
 
-    expect(started.schedule[0]).toMatchObject({
+    expect(started.schedule.find((block) => block.id === blockId)).toMatchObject({
       assignedActivityId: activity.id,
       status: 'active',
     })
@@ -131,14 +131,14 @@ describe('planner state transitions', () => {
 
   it('schedules an activity without starting the block', () => {
     const initial = createDefaultAppState()
-    const blockId = initial.schedule[0].id
+    const blockId = initial.schedule.find((block) => !block.locked && block.type !== 'fixed')!.id
     const scheduled = applyPlannerAction(initial, {
       type: 'schedule-activity',
       blockId,
       activityId: seedActivities[0].id,
     })
 
-    expect(scheduled.schedule[0]).toMatchObject({
+    expect(scheduled.schedule.find((block) => block.id === blockId)).toMatchObject({
       assignedActivityId: seedActivities[0].id,
       status: 'planned',
     })
@@ -185,7 +185,7 @@ describe('planner state transitions', () => {
     expect(state.household.recentlyCompleted).toEqual(initial.household.recentlyCompleted)
   })
 
-  it('rejects empty organizer content and preserves the last child', () => {
+  it('rejects empty organizer content and permits clearing the last child', () => {
     const initial = createDefaultAppState()
     const oneChild = {
       ...initial,
@@ -196,8 +196,8 @@ describe('planner state transitions', () => {
       applyPlannerAction(oneChild, {
         type: 'remove-child',
         childId: oneChild.household.children[0].id,
-      }),
-    ).toBe(oneChild)
+      }).household.children,
+    ).toEqual([])
     expect(
       applyPlannerAction(initial, {
         type: 'add-organizer-item',

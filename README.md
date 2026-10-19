@@ -1,63 +1,33 @@
 # KidRhythm
 
-KidRhythm is a parent-controlled whole-child routine tool for kids at home. It helps a household understand what supports each child across energy, temperament, interests, context, and day rhythm, then turns that understanding into better routines and practical activity choices.
+A parent-controlled daily routine planner with child profiles, practical activity suggestions, household lists and notes. Everything in the planner is saved in the current browser. No email or cloud account is required.
 
-The product should feel practical, calm, and trustworthy. It is not a chatbot wrapper, a random prompt generator, or a screen-time reward machine.
+## Use the planner
 
-## Working Docs
+Open the website and choose **Open your planner**. Add a child nickname, create time blocks, then choose activities that fit your available time, supplies and supervision. The schedule is a daily template, not a calendar or reminder service. Sample data is opt-in and clearly labeled.
 
-- [Project plan](docs/PROJECT_PLAN.md): product strategy, phases, architecture, data model, and release plan.
-- [Codex continuity](docs/CODEX_CONTINUITY.md): how to run Codex sessions without losing project context.
-- [macOS app packaging](docs/MACOS_APP.md): Tauri build output and signing/notarization path.
-- [Task log](docs/TASK_LOG.md): current status, next actions, open questions, and decision history.
-
-## Repository
-
-Private GitHub repo:
-
-```text
-https://github.com/alinafe82/kid-rhythm
-```
-
-Domain target:
-
-```text
-getkidrhythm.com
-```
+Your entries are not uploaded or synchronized. Browser storage is not encrypted by KidRhythm: protect shared devices with a device lock and separate browser profile. Clearing site data can remove your plan. Saving failures are visible, and unreadable existing data is left untouched. See the website privacy page for details.
 
 ## Development
 
-```bash
-npm install
+```sh
+npm ci
 npm run dev
-npm test
-npm run build
 npm run lint
-npm run desktop:build
+npm run test:coverage
+npm run build
 ```
 
-## Current Direction
+The Vite build creates the planner in `dist`. Static public pages are copied from `public`. `vercel.json` routes `/` to the public landing and `/app/` to the planner with restrictive headers. [CI checks](docs/ci-cd.md) and [macOS development](docs/MACOS_APP.md) are documented separately.
 
-The first build should be a local-first web app or mobile-ready PWA with:
+## Advertising
 
-- child profiles
-- whole-child preference signals
-- household constraints
-- activity library
-- activity queue
-- flexible daily schedule
-- parent feedback loop
-- parent-visible child insights
-- privacy-first local data model
+Public pages include verification for the confirmed AdSense publisher and `ads.txt`. Active advertising is disabled pending site approval and reviewed consent setup. The planner loads no Google analytics or advertising. Publisher verification does not establish approval or income.
 
-AI should be optional and subordinate to product logic. The MVP can work without any model calls.
+## Contributing
 
-## Current Slice
+Report software problems using invented examples. Never post real child details, household notes, planner exports, passwords or access tokens in public issues. Run the checks above before proposing a change.
 
-The app currently includes a Today view backed by deterministic scoring, seed activity data, basic schedule blocks, whole-child signal controls, parent-visible fit insights, editable child/supply data, feedback actions, local persistence, and unit tests for recommendation, schedule, and persistence logic.
+## License
 
-## Public Analytics
-
-The production HTTPS web shell loads a same-origin GA4 page measurement script using measurement ID `G-2VT1V5192S`. The loader disables Google signals and ad personalization signals, and it does not read or send household planner data, child profiles, schedules, feedback, account records, or local storage values.
-
-The analytics loader exits outside HTTPS production contexts, so local development and desktop/Tauri runs remain local-first.
+[MIT](LICENSE). Third-party dependencies retain their own licenses.

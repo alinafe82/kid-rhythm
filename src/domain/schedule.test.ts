@@ -54,7 +54,10 @@ describe('schedule helpers', () => {
     }
 
     expect(getAvailableMinutes(undefined, toMinutes('19:00'))).toBe(30)
-    expect(getAvailableMinutes(shortBlock, toMinutes('08:04'))).toBe(10)
+    expect(getAvailableMinutes(shortBlock, toMinutes('08:04'))).toBe(1)
+    expect(getAvailableMinutes(shortBlock, toMinutes('08:05'))).toBe(0)
+    expect(getAvailableMinutes(shortBlock, toMinutes('08:06'))).toBe(0)
+    expect(getAvailableMinutes(shortBlock, toMinutes('07:30'))).toBe(5)
   })
 
   it('returns undefined when no current or future flexible block exists', () => {

@@ -408,7 +408,7 @@
   border-radius: 999px;
   padding: 7px 11px;
   background: var(--teal-soft);
-  color: var(--teal);
+  color: #076047;
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -460,7 +460,7 @@
 }
 
 .summary-label {
-  color: var(--orange);
+  color: #865b00;
   font-size: 0.78rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -692,7 +692,7 @@ select {
   border-radius: 999px;
   padding: 5px 10px;
   background: var(--teal-soft);
-  color: var(--teal);
+  color: #076047;
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -1508,4 +1508,133 @@ textarea {
   .state-notice {
     animation: none;
   }
+}
+
+/* Local planner controls must fit the narrow schedule sidebar as well as phones. */
+.local-device-notice {
+  width: min(calc(100% - 28px), 1180px);
+  margin: 18px auto;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+
+.routine-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.routine-editor input,
+.routine-editor button {
+  min-width: 0;
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.routine-editor input[type='checkbox'] {
+  width: 24px;
+  min-height: 24px;
+  vertical-align: middle;
+}
+
+.planner-brand-logo {
+  display: block;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+}
+
+.site-header .brand-link {
+  min-height: 44px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.site-header .site-nav {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.site-header .site-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.site-header .header-badge {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .site-header-inner {
+    flex-wrap: wrap;
+  }
+  .site-header .site-nav {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.planner-backup {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  max-width: 680px;
+}
+
+.planner-backup input,
+.planner-backup button {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+}
+
+.planner-privacy summary {
+  min-height: 44px;
+  padding: 10px 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.planner-privacy summary:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.planner-first-use {
+  width: min(calc(100% - 28px), 1180px);
+  margin: 18px auto;
+}
+
+.planner-first-use h2 {
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.first-use-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.first-use-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--blue);
+  background: var(--surface);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+#household,
+#schedule {
+  scroll-margin-top: 24px;
 }

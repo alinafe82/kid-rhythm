@@ -14,6 +14,7 @@ import type {
 export const APP_STATE_STORAGE_KEY = 'kidrhythm:v1'
 
 export interface AppState {
+  dataOrigin?: 'sample' | 'personal'
   household: HouseholdProfile
   organizer: FamilyOrganizer
   schedule: ScheduleBlock[]
@@ -45,46 +46,155 @@ const activityCategories = [
 
 export function createDefaultAppState(): AppState {
   return cloneState({
+    dataOrigin: 'sample',
     household: demoHousehold,
     organizer: demoOrganizer,
     schedule: initialSchedule,
   })
 }
 
-export function loadAppState(storage: StorageLike | undefined): AppState {
+export function createEmptyAppState(): AppState {
+  return {
+    dataOrigin: 'personal',
+    household: { children: [], availableSupplies: [], blockedActivityIds: [], feedback: [], recentlyCompleted: [] },
+    organizer: { groceryItems: [], todoItems: [], mealPlan: [], notes: [] },
+    schedule: [],
+  }
+}
+
+export interface PlannerLoadResult {
+  state: AppState
+  canPersist: boolean
+  warning: string
+}
+
+// Read first, never replace unreadable bytes with starter data on mount.
+export function loadPlannerState(storage: StorageLike | undefined): PlannerLoadResult {
+  const empty = createEmptyAppState()
+  if (!storage) return { state: empty, canPersist: false, warning: 'Browser storage is unavailable. Changes last only while this page stays open.' }
+  try {
+    const stored = storage.getItem(APP_STATE_STORAGE_KEY)
+    if (!stored) return { state: empty, canPersist: true, warning: '' }
+    return { state: parseStoredPlanner(stored), canPersist: true, warning: '' }
+  } catch {
+    return { state: empty, canPersist: false, warning: 'Saved planner data could not be read. It has been left untouched. Changes here are temporary; do not clear browser storage if you need to recover the saved data.' }
+  }
+}
+
+export const MAX_BACKUP_BYTES = 1_000_000
+
+/** Local backup and stored planner share the same validation and migration boundary. */
+export function parsePlannerBackup(contents: string): AppState {
+  if (new TextEncoder().encode(contents).length > MAX_BACKUP_BYTES) throw new Error('Backup must be no larger than 1 MB.')
+  return parseStoredPlanner(contents)
+}
+
+function parseStoredPlanner(contents: string): AppState {
+  const parsed: unknown = JSON.parse(contents)
+  if (!isRecord(parsed) || !isRecord(parsed.household) || (parsed.organizer !== undefined && !isRecord(parsed.organizer)) || !Array.isArray(parsed.schedule)) {
+    throw new Error('Unrecognized planner data')
+  }
+  if (!recognizedStoredArrays(parsed) || !uniqueStoredIds(parsed)) throw new Error('Unrecognized planner entries')
+  const empty = createEmptyAppState()
+  return {
+    dataOrigin: parsed.dataOrigin === 'sample' ? 'sample' : 'personal',
+    household: normalizeHousehold(parsed.household, empty.household),
+    organizer: normalizeOrganizer(parsed.organizer, empty.organizer),
+    schedule: parsed.schedule as ScheduleBlock[],
+  }
+}
+
+// Reject malformed collections as a whole rather than erase individual family entries.
+// Missing optional fields from older versions still use empty/default values in memory.
+function recognizedStoredArrays(parsed: Record<string, unknown>): boolean {
+  const household = parsed.household as Record<string, unknown>
+  const organizer = parsed.organizer as Record<string, unknown> | undefined
+  const strings = (value: unknown) => typeof value === 'string'
+  const nonEmpty = (value: unknown) => typeof value === 'string' && value.trim().length > 0
+  const finite = (value: unknown) => typeof value === 'number' && Number.isFinite(value)
+  const optionalString = (value: unknown) => value === undefined || strings(value)
+  const array = (value: unknown, check: (entry: unknown) => boolean) => value === undefined || (Array.isArray(value) && value.every(check))
+  const feedbackRatings = ['worked', 'too-hard', 'too-messy', 'too-much-supervision', 'disliked', 'try-later'] as const
+  const periods = ['morning', 'midday', 'afternoon', 'evening'] as const
+  const blockTypes = ['fixed', 'guided', 'activity', 'open', 'unavailable'] as const
+  const statuses = ['planned', 'active', 'completed', 'skipped', 'moved'] as const
+  return array(household.children, (entry) => isRecord(entry) && strings(entry.id) && strings(entry.name) && finite(entry.age))
+    && array(household.availableSupplies, strings)
+    && array(household.blockedActivityIds, strings)
+    && array(household.feedback, (entry) => isRecord(entry) && strings(entry.activityId) && hasKnownValue(feedbackRatings, entry.rating) && hasKnownValue(periods, entry.contextPeriod) && strings(entry.timestamp) && optionalString(entry.note))
+    && array(household.recentlyCompleted, (entry) => isRecord(entry) && strings(entry.activityId) && hasKnownValue(activityCategories, entry.category) && finite(entry.completedAtMinutesAgo))
+    && array(organizer?.groceryItems, (entry) => isRecord(entry) && optionalString(entry.id) && nonEmpty(entry.text) && (entry.completed === undefined || typeof entry.completed === 'boolean'))
+    && array(organizer?.todoItems, (entry) => isRecord(entry) && optionalString(entry.id) && nonEmpty(entry.text) && (entry.completed === undefined || typeof entry.completed === 'boolean'))
+    && array(organizer?.mealPlan, (entry) => isRecord(entry) && optionalString(entry.id) && nonEmpty(entry.dayLabel) && nonEmpty(entry.meal) && optionalString(entry.notes))
+    && array(organizer?.notes, (entry) => isRecord(entry) && optionalString(entry.id) && nonEmpty(entry.title) && nonEmpty(entry.body))
+    && array(parsed.schedule, (entry) => isRecord(entry) && strings(entry.id) && strings(entry.label) && Number.isInteger(entry.startMinutes) && Number.isInteger(entry.endMinutes) && Number(entry.startMinutes) >= 0 && Number(entry.endMinutes) < 1440 && Number(entry.startMinutes) < Number(entry.endMinutes) && typeof entry.locked === 'boolean' && hasKnownValue(blockTypes, entry.type) && hasKnownValue(statuses, entry.status) && optionalString(entry.assignedActivityId) && (entry.preferredCategory === undefined || hasKnownValue(activityCategories, entry.preferredCategory)) && (entry.preferredEnergy === undefined || hasKnownValue(energyLevels, entry.preferredEnergy)))
+}
+
+function uniqueStoredIds(parsed: Record<string, unknown>): boolean {
+  const household = parsed.household as Record<string, unknown>
+  const organizer = parsed.organizer as Record<string, unknown> | undefined
+  return [household.children, parsed.schedule, organizer?.groceryItems, organizer?.todoItems, organizer?.mealPlan, organizer?.notes].every((entries) => {
+    const ids = new Set<string>()
+    for (const entry of (entries as Record<string, unknown>[] | undefined) ?? []) {
+      if (typeof entry.id !== 'string' || !entry.id) continue
+      if (ids.has(entry.id)) return false
+      ids.add(entry.id)
+    }
+    return true
+  })
+}
+
+// Migration IDs are stable, per-collection, and cannot collide with a stored ID.
+function withLegacyIds(entries: unknown[], collection: string): unknown[] {
+  const ids = new Set(entries.flatMap((entry) => isRecord(entry) && typeof entry.id === 'string' && entry.id ? [entry.id] : []))
+  return entries.map((entry, index) => {
+    if (!isRecord(entry) || (typeof entry.id === 'string' && entry.id)) return entry
+    const base = `legacy-${collection}-${index}`
+    let id = base
+    let suffix = 1
+    while (ids.has(id)) id = `${base}-${suffix++}`
+    ids.add(id)
+    return { ...entry, id }
+  })
+}
+
+export function loadAppState(storage: StorageLike | undefined, defaults = createDefaultAppState()): AppState {
   if (!storage) {
-    return createDefaultAppState()
+    return cloneState(defaults)
   }
 
   try {
     const stored = storage.getItem(APP_STATE_STORAGE_KEY)
 
     if (!stored) {
-      return createDefaultAppState()
+      return cloneState(defaults)
     }
 
     const parsed = JSON.parse(stored) as Partial<AppState>
-    const fallback = createDefaultAppState()
+    const fallback = cloneState(defaults)
 
     return {
+      dataOrigin: parsed.dataOrigin === 'sample' ? 'sample' : 'personal',
       household: normalizeHousehold(parsed.household, fallback.household),
       organizer: normalizeOrganizer(parsed.organizer, fallback.organizer),
       schedule: normalizeSchedule(parsed.schedule, fallback.schedule),
     }
   } catch {
-    return createDefaultAppState()
+    return cloneState(defaults)
   }
 }
 
 export function saveAppState(
   storage: StorageLike | undefined,
   state: AppState,
-): void {
-  if (!storage) {
-    return
+): boolean {
+  if (!storage) return false
+  try {
+    storage.setItem(APP_STATE_STORAGE_KEY, JSON.stringify(state))
+    return true
+  } catch {
+    return false
   }
-
-  storage.setItem(APP_STATE_STORAGE_KEY, JSON.stringify(state))
 }
 
 export function clearAppState(storage: StorageLike | undefined): void {
@@ -205,22 +315,22 @@ function normalizeOrganizer(
 
   return {
     groceryItems: Array.isArray(organizer.groceryItems)
-      ? organizer.groceryItems
+      ? withLegacyIds(organizer.groceryItems, 'groceries')
           .map(normalizeOrganizerItem)
           .filter((item): item is OrganizerItem => Boolean(item))
       : fallback.groceryItems,
     todoItems: Array.isArray(organizer.todoItems)
-      ? organizer.todoItems
+      ? withLegacyIds(organizer.todoItems, 'todos')
           .map(normalizeOrganizerItem)
           .filter((item): item is OrganizerItem => Boolean(item))
       : fallback.todoItems,
     mealPlan: Array.isArray(organizer.mealPlan)
-      ? organizer.mealPlan
+      ? withLegacyIds(organizer.mealPlan, 'meals')
           .map(normalizeMealPlanEntry)
           .filter((entry): entry is MealPlanEntry => Boolean(entry))
       : fallback.mealPlan,
     notes: Array.isArray(organizer.notes)
-      ? organizer.notes
+      ? withLegacyIds(organizer.notes, 'notes')
           .map(normalizeFamilyNote)
           .filter((note): note is FamilyNote => Boolean(note))
       : fallback.notes,
@@ -239,7 +349,7 @@ function normalizeOrganizerItem(item: unknown): OrganizerItem | undefined {
   }
 
   return {
-    id: typeof item.id === 'string' ? item.id : `item-${Date.now()}`,
+    id: item.id as string,
     text,
     completed: typeof item.completed === 'boolean' ? item.completed : false,
   }
@@ -259,7 +369,7 @@ function normalizeMealPlanEntry(entry: unknown): MealPlanEntry | undefined {
   }
 
   return {
-    id: typeof entry.id === 'string' ? entry.id : `meal-${Date.now()}`,
+    id: entry.id as string,
     dayLabel,
     meal,
     notes:
@@ -282,7 +392,7 @@ function normalizeFamilyNote(note: unknown): FamilyNote | undefined {
   }
 
   return {
-    id: typeof note.id === 'string' ? note.id : `note-${Date.now()}`,
+    id: note.id as string,
     title,
     body,
   }
@@ -293,7 +403,7 @@ function cloneState(state: AppState): AppState {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function hasKnownValue<T extends string>(

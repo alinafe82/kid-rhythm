@@ -56,7 +56,7 @@ export function getAvailableMinutes(
   }
 
   const start = Math.max(nowMinutes, block.startMinutes)
-  return Math.max(10, block.endMinutes - start)
+  return Math.max(0, block.endMinutes - start)
 }
 
 export function assignActivityToBlock(
@@ -65,7 +65,7 @@ export function assignActivityToBlock(
   activityId: string,
 ): ScheduleBlock[] {
   return blocks.map((block) =>
-    block.id === blockId
+    block.id === blockId && !block.locked && block.type !== 'fixed' && block.type !== 'unavailable'
       ? {
           ...block,
           assignedActivityId: activityId,
@@ -89,4 +89,17 @@ export function updateBlockStatus(
         }
       : block,
   )
+}
+
+/** Parent-edited blocks must fit one day without silently displacing another block. */
+export function editSchedule(blocks: ScheduleBlock[], edited: ScheduleBlock): ScheduleBlock[] {
+  if (!edited.id || !edited.label.trim()) throw new Error('Add a schedule label.')
+  if (!Number.isInteger(edited.startMinutes) || !Number.isInteger(edited.endMinutes) || edited.startMinutes < 0 || edited.endMinutes >= 1440 || edited.startMinutes >= edited.endMinutes) {
+    throw new Error('Choose an end time after the start time, within the same day.')
+  }
+  if (blocks.some((block) => block.id !== edited.id && edited.startMinutes < block.endMinutes && edited.endMinutes > block.startMinutes)) {
+    throw new Error('That time overlaps another block. Edit its times first.')
+  }
+  return [...blocks.filter((block) => block.id !== edited.id), { ...edited, label: edited.label.trim() }]
+    .sort((a, b) => a.startMinutes - b.startMinutes)
 }

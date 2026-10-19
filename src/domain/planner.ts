@@ -65,6 +65,7 @@ export function applyPlannerAction(
 ): AppState {
   switch (action.type) {
     case 'start-activity':
+      if (!state.schedule.some((block) => block.id === action.blockId && !block.locked && block.type !== 'fixed' && block.type !== 'unavailable')) return state
       return {
         ...state,
         schedule: updateBlockStatus(
@@ -119,7 +120,7 @@ export function applyPlannerAction(
     case 'add-child':
       return updateHousehold(state, (household) => ({
         ...household,
-        children: [...household.children, action.child],
+        children: household.children.some((child) => child.id === action.child.id) ? household.children : [...household.children, action.child],
       }))
     case 'update-child-signals':
       return updateHousehold(state, (household) => ({
@@ -147,7 +148,6 @@ export function applyPlannerAction(
         }),
       }))
     case 'remove-child':
-      if (state.household.children.length === 1) return state
       return updateHousehold(state, (household) => ({
         ...household,
         children: household.children.filter(

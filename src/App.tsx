@@ -1,31 +1,20 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import { loadAccount } from './data/account'
 import {
-  clearSession,
-  createLocalAccount,
-  createSession,
-  loadAccount,
-  loadSession,
-  saveAccount,
-  saveSession,
-  validateAccountInput,
-  verifyPasscode,
-  type AccountInput,
-  type AccountSession,
-  type LocalAccount,
-} from './data/account'
-import {
-  clearAppState,
   createDefaultChildSignals,
   createDefaultAppState,
-  loadAppState,
+  createEmptyAppState,
+  loadPlannerState,
+  parsePlannerBackup,
+  MAX_BACKUP_BYTES,
   saveAppState,
   type AppState,
   type StorageLike,
 } from './data/appState'
-import { demoNowMinutes } from './data/demoHousehold'
 import { seedActivities } from './data/seedActivities'
 import {
+  editSchedule,
   findCurrentBlock,
   findNextFlexibleBlock,
   formatTime,
@@ -57,12 +46,6 @@ import type {
   SupervisionLevel,
   TransitionNeed,
 } from './domain/types'
-
-const timeOptions = [
-  { label: '9:20 AM', value: toMinutes('09:20') },
-  { label: '1:10 PM', value: demoNowMinutes },
-  { label: '3:05 PM', value: toMinutes('15:05') },
-]
 
 const energyOptions: EnergyLevel[] = ['calm', 'moderate', 'active']
 const categoryOptions: ActivityCategory[] = [
@@ -96,154 +79,37 @@ const allSupplies = Array.from(
   new Set(seedActivities.flatMap((activity) => activity.supplies)),
 ).sort()
 
-type AuthState = {
-  account: LocalAccount | null
-  session: AccountSession | null
-}
-
 type PlannerNotice = {
   id: number
   message: string
   onUndo?: () => void
 }
 
-const emptyAccountForm: AccountInput = {
-  householdName: '',
-  email: '',
-  passcode: '',
-}
-
-const accountGateSteps = [
-  {
-    number: '01',
-    title: 'Read the room',
-    description:
-      'Pick the day part, mood, supervision level, mess tolerance, and whether fresh air fits.',
-  },
-  {
-    number: '02',
-    title: 'Pick a play lane',
-    description:
-      'Balance movement, building, making, stories, sensory load, time, and supplies already nearby.',
-  },
-  {
-    number: '03',
-    title: 'Know why it fits',
-    description:
-      'Show age fit, setup effort, cleanup load, supervision, safety notes, and the reason for the match.',
-  },
-  {
-    number: '04',
-    title: 'Tune the rhythm',
-    description:
-      'Skip, swap, schedule, or mark feedback so the next idea feels better for the household.',
-  },
-]
-
-const accountGateSignals = ['Build', 'Wiggle', 'Create', 'Story']
-
 function App() {
-  const [authState, setAuthState] = useState<AuthState>(() =>
-    loadInitialAuth(getBrowserStorage()),
-  )
-  const [accountForm, setAccountForm] = useState<AccountInput>(() => ({
-    householdName: authState.account?.householdName ?? emptyAccountForm.householdName,
-    email: authState.account?.email ?? emptyAccountForm.email,
-    passcode: '',
-  }))
-  const [authError, setAuthError] = useState('')
-
-  const updateAccountForm = (patch: Partial<AccountInput>) => {
-    setAuthError('')
-    setAccountForm((current) => ({ ...current, ...patch }))
-  }
-
-  const createAccount = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    const validationMessage = validateAccountInput(accountForm)
-
-    if (validationMessage) {
-      setAuthError(validationMessage)
-      return
-    }
-
-    const account = createLocalAccount(accountForm)
-    const session = createSession(account)
-    const storage = getBrowserStorage()
-
-    saveAccount(storage, account)
-    saveSession(storage, session)
-    setAuthState({ account, session })
-    setAccountForm({
-      householdName: account.householdName,
-      email: account.email,
-      passcode: '',
-    })
-    setAuthError('')
-  }
-
-  const signIn = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    if (!authState.account) {
-      setAuthError('Create a household account first.')
-      return
-    }
-
-    if (
-      !verifyPasscode(authState.account, accountForm.email, accountForm.passcode)
-    ) {
-      setAuthError('Email or passcode did not match.')
-      return
-    }
-
-    const session = createSession(authState.account)
-
-    saveSession(getBrowserStorage(), session)
-    setAuthState((current) => ({ ...current, session }))
-    setAccountForm((current) => ({ ...current, passcode: '' }))
-    setAuthError('')
-  }
-
-  const signOut = () => {
-    clearSession(getBrowserStorage())
-
-    setAuthState((current) => ({ account: current.account, session: null }))
-    setAccountForm({
-      householdName: authState.account?.householdName ?? '',
-      email: authState.account?.email ?? '',
-      passcode: '',
-    })
-    setAuthError('')
-  }
-
-  if (!authState.account || !authState.session) {
-    return (
-      <AccountGate
-        account={authState.account}
-        error={authError}
-        form={accountForm}
-        onCreate={createAccount}
-        onFormChange={updateAccountForm}
-        onSignIn={signIn}
-      />
-    )
-  }
-
-  return <PlannerApp account={authState.account} onSignOut={signOut} />
+  // Legacy names may be reused locally; the old account/session records are not erased.
+  const householdName = loadAccount(getBrowserStorage())?.householdName ?? 'your household'
+  return <PlannerApp householdName={householdName} />
 }
 
 interface PlannerAppProps {
-  account: LocalAccount
-  onSignOut: () => void
+  householdName: string
 }
 
-function PlannerApp({ account, onSignOut }: PlannerAppProps) {
-  const [appState, setAppState] = useState<AppState>(() =>
-    loadAppState(getBrowserStorage()),
-  )
-  const [nowMinutes, setNowMinutes] = useState(demoNowMinutes)
+function PlannerApp({ householdName }: PlannerAppProps) {
+  const [initial] = useState(() => loadPlannerState(getBrowserStorage()))
+  const [appState, updateState] = useState<AppState>(initial.state)
+  const appStateRef = useRef(initial.state)
+  const [storageWarning, setStorageWarning] = useState(initial.warning)
+  const [backupMessage, setBackupMessage] = useState('')
+  // Only parent actions write storage. Mounting never rewrites existing bytes.
+  const setAppState = (update: AppState | ((current: AppState) => AppState)) => {
+    const next = typeof update === 'function' ? update(appStateRef.current) : update
+    appStateRef.current = next
+    updateState(next)
+    if (initial.canPersist) setStorageWarning(saveAppState(getBrowserStorage(), next) ? '' : 'Changes could not be saved on this device. Keep this page open; changes may be lost when you close it.')
+  }
+  const [useCurrentTime, setUseCurrentTime] = useState(true)
+  const [nowMinutes, setNowMinutes] = useState(currentMinutes)
   const [desiredEnergy, setDesiredEnergy] = useState<EnergyLevel>('calm')
   const [supervision, setSupervision] = useState<SupervisionLevel>('nearby')
   const [setting, setSetting] = useState<ActivitySetting>('indoor')
@@ -258,31 +124,34 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
   const [notice, setNotice] = useState<PlannerNotice | null>(null)
 
   useEffect(() => {
-    saveAppState(getBrowserStorage(), appState)
-  }, [appState])
+    if (!useCurrentTime) return
+    const timer = window.setInterval(() => setNowMinutes(currentMinutes()), 15000)
+    return () => window.clearInterval(timer)
+  }, [useCurrentTime])
 
   const activityById = useMemo(
     () => new Map(seedActivities.map((activity) => [activity.id, activity])),
     [],
   )
 
-  const activeBlock =
-    findCurrentBlock(appState.schedule, nowMinutes) ??
-    findNextFlexibleBlock(appState.schedule, nowMinutes)
+  const currentBlock = findCurrentBlock(appState.schedule, nowMinutes)
+  const activeBlock = currentBlock && !currentBlock.locked && currentBlock.type !== 'fixed' && currentBlock.type !== 'unavailable'
+    ? currentBlock
+    : findNextFlexibleBlock(appState.schedule, nowMinutes)
   const availableMinutes = getAvailableMinutes(activeBlock, nowMinutes)
   const household = appState.household
   const organizer = appState.organizer
 
   const recommendations = useMemo(
     () =>
-      rankActivities(seedActivities, household, {
+      household.children.length ? rankActivities(seedActivities, household, {
         nowMinutes,
         availableMinutes,
         desiredEnergy,
         supervisionAvailability: supervision,
         setting,
         currentBlock: activeBlock,
-      }),
+      }) : [],
     [
       activeBlock,
       availableMinutes,
@@ -308,12 +177,12 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
   }
 
   const showNotice = (message: string, onUndo?: () => void) => {
-    setNotice({ id: Date.now(), message, onUndo })
+    setNotice((current) => ({ id: (current?.id ?? 0) + 1, message, onUndo }))
   }
 
   const undoNotice = () => {
     notice?.onUndo?.()
-    setNotice({ id: Date.now(), message: 'Change undone.' })
+    setNotice((current) => ({ id: (current?.id ?? 0) + 1, message: 'Change undone.' }))
   }
 
   const recordFeedback = (activity: Activity, rating: FeedbackRating) => {
@@ -326,12 +195,12 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     })
 
     const feedbackMessages: Record<FeedbackRating, string> = {
-      worked: `Saved: ${activity.title} worked well. Future suggestions will use that.`,
-      'too-hard': `Saved: ${activity.title} felt too hard.`,
-      'too-messy': `Saved: ${activity.title} was too messy.`,
-      'too-much-supervision': `Saved: ${activity.title} needed too much help.`,
-      disliked: `Saved: ${activity.title} was not a good fit.`,
-      'try-later': `${activity.title} saved for later. Future suggestions will favor other options.`,
+      worked: `Recorded: ${activity.title} worked well. Future suggestions will use that.`,
+      'too-hard': `Recorded: ${activity.title} felt too hard.`,
+      'too-messy': `Recorded: ${activity.title} was too messy.`,
+      'too-much-supervision': `Recorded: ${activity.title} needed too much help.`,
+      disliked: `Recorded: ${activity.title} was not a good fit.`,
+      'try-later': `${activity.title} marked for later. Future suggestions will favor other options.`,
     }
 
     showNotice(feedbackMessages[rating])
@@ -353,8 +222,8 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
   }
 
   const startActivity = (activity: Activity) => {
-    if (!activeBlock) {
-      showNotice('There is no active schedule block to start this activity.')
+    if (!activeBlock || nowMinutes < activeBlock.startMinutes || nowMinutes >= activeBlock.endMinutes) {
+      showNotice('There is no active flexible schedule block to start this activity. You can schedule it for a later open block.')
       return
     }
 
@@ -375,7 +244,7 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     dispatchPlanner({
       type: 'add-child',
       child: {
-        id: `child-${Date.now()}`,
+        id: createLocalId('child'),
         name: 'New child',
         age: 6,
         signals: createDefaultChildSignals(),
@@ -543,6 +412,37 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
     )
   }
 
+  const downloadBackup = () => {
+    const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'kidrhythm-planner-backup.json'
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setBackupMessage('Backup download requested. It contains family details; keep the file private and check it downloaded before closing this page.')
+  }
+
+  const restoreBackup = async (file: File | undefined) => {
+    if (!file) return
+    if (!initial.canPersist) {
+      setBackupMessage('Restore is blocked while saved data cannot be read. Preserve the original browser data for recovery; export this temporary view separately if needed.')
+      return
+    }
+    if (file.size > MAX_BACKUP_BYTES) {
+      setBackupMessage('Backup must be no larger than 1 MB. Nothing was replaced.')
+      return
+    }
+    try {
+      const restored = parsePlannerBackup(await file.text())
+      if (!window.confirm('Replace this device’s current planner with the selected backup? Download a backup of your current plan first if you need to keep it.')) return
+      setAppState(restored)
+      setBackupMessage('Backup loaded into this planner. Check the storage status above to confirm whether it was saved on this device.')
+    } catch {
+      setBackupMessage('This file could not be read as a valid planner backup. Nothing was replaced.')
+    }
+  }
+
   const resetLocalData = () => {
     const confirmed = window.confirm(
       'Reset every child profile, schedule item, family list, and preference on this device?',
@@ -552,49 +452,77 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
       return
     }
 
-    clearAppState(getBrowserStorage())
-    setAppState(createDefaultAppState())
-    showNotice('All planner data reset to the starter household.')
+    if (!initial.canPersist) {
+      showNotice('Saved data is protected while it cannot be read. No stored data was changed.')
+      return
+    }
+    setAppState(createEmptyAppState())
+    showNotice('Planner cleared on this device.')
   }
 
   return (
     <main className="app-shell">
       <header className="site-header">
         <div className="site-header-inner">
-          <a className="brand-link" href="#today" aria-label="KidRhythm home">
-            <span className="brand-mark">K</span>
+          <a className="brand-link" href="/">
+            <img className="planner-brand-logo" src="/favicon.svg" alt="" width="44" height="44" />
             <span>KidRhythm</span>
           </a>
           <nav className="site-nav" aria-label="Primary">
-            <a href="#today">Today</a>
+            <a href="/">Home</a>
+            <a href="#today">Planner</a>
             <a href="#schedule">Schedule</a>
             <a href="#family-hub">Family Hub</a>
             <a href="#household">Household</a>
+            <a href="/privacy.html">Privacy</a>
           </nav>
           <div className="account-actions">
-            <span className="header-badge">{account.householdName}</span>
-            <button
-              type="button"
-              className="secondary sign-out-button"
-              onClick={onSignOut}
-            >
-              Sign out
-            </button>
+            <span className="header-badge">{householdName}</span>
+
           </div>
         </div>
       </header>
 
+      <section className="local-device-notice" aria-label="Local device privacy">
+        <p>For parents and caregivers. This planner stays in this browser, without cloud sync or an account lock. Anyone using this browser profile can open it.</p>
+        {storageWarning ? <p role="alert">{storageWarning}</p> : null}
+        {appState.dataOrigin === 'sample' ? <p><strong>Sample household:</strong> Mara, Leo, routines and feedback are examples. Replace these with your own details or clear the planner before using it for your family.</p> : null}
+        <details className="planner-privacy">
+          <summary>Privacy and backups</summary>
+          <p>Use initials rather than sensitive names or notes. Clearing site data or using another device will not restore your planner. This is local browser storage, without an encrypted vault, online account or password protection.</p>
+        <div className="planner-backup">
+          <h2>Private local backup</h2>
+          <p>Backups contain family planner details. Keep them private. Only planner data is included, without legacy account email or passcode records. Restoring replaces this device’s current plan after confirmation.</p>
+          <button type="button" className="secondary" onClick={downloadBackup}>Download private planner backup</button>
+          <label className="field"><span>Restore planner backup (JSON, up to 1 MB)</span><input type="file" accept="application/json,.json" disabled={!initial.canPersist} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void restoreBackup(file) }} /></label>
+          {!initial.canPersist ? <p>Restore is blocked to preserve unreadable saved data. Keep this browser profile and its site data intact for recovery.</p> : null}
+          {backupMessage ? <p role="status">{backupMessage}</p> : null}
+        </div>
+        </details>
+      </section>
+
+      {!household.children.length || !appState.schedule.length ? <section className="planner-first-use" aria-label="Get started">
+        <h2>Start your daily routine</h2>
+        <div className="first-use-actions">
+          <a href="#household">1. Add your child</a>
+          <a href="#schedule">2. Create your routine</a>
+        </div>
+        {!household.children.length && !appState.schedule.length && !organizer.groceryItems.length && !organizer.todoItems.length && !organizer.notes.length && !organizer.mealPlan.length && !household.feedback.length && !household.availableSupplies.length && !household.blockedActivityIds.length && !household.recentlyCompleted.length ? <p>
+          Start with your own child profile and schedule below, or <button type="button" className="secondary" onClick={() => { setAppState(createDefaultAppState()); showNotice('Example household loaded. Mara, Leo, feedback and routines are sample data; edit or clear them before planning for your family.') }}>Load a clearly labeled sample household</button>
+        </p> : null}
+      </section> : null}
+
       <section className="hero-band" id="today" aria-label="Today summary">
         <div className="hero-copy">
           <p className="eyebrow">Family rhythm planner</p>
-          <h1>A calmer rhythm for {account.householdName}</h1>
+          <h1>A calmer rhythm for {householdName}</h1>
           <p className="hero-text">
             Plan the day, keep household lists close, and pick the next activity
             from what fits your kids right now.
           </p>
-          <div className="household-strip" aria-label="Household">
+          <div className="household-strip" role="list" aria-label="Household">
             {household.children.map((child) => (
-              <span key={child.id}>
+              <span key={child.id} role="listitem">
                 {child.name}, {child.age}
               </span>
             ))}
@@ -602,11 +530,11 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
         </div>
         <div className="hero-summary-card">
           <span className="summary-label">Next up</span>
-          <strong>{primary?.activity.title ?? 'No strong match'}</strong>
-          <p>{activeBlock?.label ?? 'Open family time'}</p>
+          <strong>{primary?.activity.title ?? (household.children.length ? 'Choose what fits your day' : 'Your plan starts here')}</strong>
+          <p>{activeBlock?.label ?? 'Create a flexible routine block'}</p>
           <div className="summary-meta">
             <span>{formatTime(nowMinutes)}</span>
-            <span>{availableMinutes} min</span>
+            {activeBlock ? <span>{availableMinutes} min</span> : <span>No routine block yet</span>}
             <span>{desiredEnergy}</span>
           </div>
         </div>
@@ -615,16 +543,15 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
       <section className="control-band" aria-label="Recommendation context">
         <label className="field">
           <span>Time</span>
-          <select
-            value={nowMinutes}
-            onChange={(event) => setNowMinutes(Number(event.target.value))}
-          >
-            {timeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <input type="time" value={timeInput(nowMinutes)} onChange={(event) => {
+            if (!event.target.value) return
+            setUseCurrentTime(false)
+            setNowMinutes(toMinutes(event.target.value))
+          }} />
+          <button type="button" className="secondary" onClick={() => { setUseCurrentTime(true); setNowMinutes(currentMinutes()) }}>
+            Use current time
+          </button>
+          <small>{useCurrentTime ? 'Following this device’s clock' : 'Planning at a custom time'}</small>
         </label>
 
         <SegmentedControl
@@ -654,9 +581,9 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
           <div className="section-heading">
             <div>
               <p className="eyebrow">Fit for right now</p>
-              <h2>{primary?.activity.title ?? 'No strong match'}</h2>
+              <h2>{primary?.activity.title ?? (household.children.length ? 'No activity fits these settings' : 'Add your child to begin')}</h2>
             </div>
-            <span className="fit-badge">Best fit</span>
+            {primary ? <span className="fit-badge">Best fit</span> : null}
           </div>
 
           {primary ? (
@@ -739,8 +666,7 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
             </>
           ) : (
             <p className="activity-description">
-              No activity fits the current age, supplies, time, place, and
-              supervision constraints.
+              {household.children.length ? 'No activity fits the current age, supplies, time, place, and supervision constraints.' : 'Add your child profile and supplies below to see activities that fit your family.'}
             </p>
           )}
         </section>
@@ -752,6 +678,16 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
             activeBlock={activeBlock}
             nowMinutes={nowMinutes}
             schedule={appState.schedule}
+            onSave={(block) => {
+              try {
+                const schedule = editSchedule(appState.schedule, block)
+                setAppState((current) => ({ ...current, schedule }))
+                return null
+              } catch (error) {
+                return error instanceof Error ? error.message : 'This schedule could not be changed.'
+              }
+            }}
+            onRemove={(blockId) => setAppState((current) => ({ ...current, schedule: current.schedule.filter((block) => block.id !== blockId) }))}
           />
           <ActivityDetail
             activity={selectedActivity}
@@ -800,6 +736,7 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
       <section
         className="settings-band"
         id="household"
+        tabIndex={-1}
         aria-label="Household setup"
       >
         <div className="settings-panel">
@@ -1040,194 +977,6 @@ function PlannerApp({ account, onSignOut }: PlannerAppProps) {
   )
 }
 
-interface AccountGateProps {
-  account: LocalAccount | null
-  error: string
-  form: AccountInput
-  onCreate: (event: FormEvent<HTMLFormElement>) => void
-  onFormChange: (patch: Partial<AccountInput>) => void
-  onSignIn: (event: FormEvent<HTMLFormElement>) => void
-}
-
-function AccountGate({
-  account,
-  error,
-  form,
-  onCreate,
-  onFormChange,
-  onSignIn,
-}: AccountGateProps) {
-  const isSignIn = Boolean(account)
-  const householdNameRef = useRef<HTMLInputElement>(null)
-  const emailRef = useRef<HTMLInputElement>(null)
-  const passcodeRef = useRef<HTMLInputElement>(null)
-  const invalidField = error.includes('household')
-    ? 'household'
-    : error.includes('email') || error.includes('Email')
-      ? 'email'
-      : error
-        ? 'passcode'
-        : null
-
-  useEffect(() => {
-    if (invalidField === 'household') {
-      householdNameRef.current?.focus()
-    } else if (invalidField === 'email') {
-      emailRef.current?.focus()
-    } else if (invalidField === 'passcode') {
-      passcodeRef.current?.focus()
-    }
-  }, [invalidField])
-
-  return (
-    <main className="auth-shell">
-      <section className="auth-card" aria-labelledby="auth-title">
-        <div className="auth-panel">
-          <div className="brand-link" aria-label="KidRhythm">
-            <span className="brand-mark">K</span>
-            <span>KidRhythm</span>
-          </div>
-          <p className="eyebrow">Household setup concierge</p>
-          <h1 id="auth-title">
-            {isSignIn
-              ? `Welcome back to ${account?.householdName}`
-              : 'A calmer rhythm for real family days.'}
-          </h1>
-          <p className="auth-copy">
-            Plan at-home play around your child's energy, attention, available
-            time, supplies, and household constraints, with clear reasons
-            parents can adjust quickly.
-          </p>
-
-          <div className="auth-command-strip" aria-label="Primary setup path">
-            <div>
-              <span>What do you need to do next?</span>
-              <strong>{isSignIn ? 'Open your household' : 'Create a private household'}</strong>
-            </div>
-            <p>Energy | mess | setup | supplies</p>
-          </div>
-
-          <div className="auth-signal-board" aria-label="Activity signal preview">
-            <div className="auth-signal-visual">
-              <span>KR</span>
-              <small>Play cues</small>
-              <div aria-hidden="true" className="auth-signal-lines">
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-              </div>
-            </div>
-            <div className="auth-mode-tags" aria-label="Example activity modes">
-              {accountGateSignals.map((signal) => (
-                <span key={signal}>{signal}</span>
-              ))}
-            </div>
-          </div>
-
-          <ol className="auth-step-list" aria-label="Setup steps">
-            {accountGateSteps.map((step) => (
-              <li key={step.number}>
-                <span>{step.number}</span>
-                <div>
-                  <strong>{step.title}</strong>
-                  <p>{step.description}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-
-          <div className="auth-promises" aria-label="Privacy commitments">
-            <span>Local household data</span>
-            <span>Clear fit reasons</span>
-            <span>Parent-controlled</span>
-          </div>
-        </div>
-
-        <form className="auth-form" onSubmit={isSignIn ? onSignIn : onCreate}>
-          <div className="auth-form-heading">
-            <p className="eyebrow">{isSignIn ? 'Welcome back' : 'Step one'}</p>
-            <h2>{isSignIn ? 'Open your household' : 'Name your household'}</h2>
-            <p>
-              {isSignIn
-                ? 'Use the local details saved on this device.'
-                : 'You can add children, routines, and preferences next.'}
-            </p>
-          </div>
-
-          {isSignIn ? (
-            <div className="auth-account-summary">
-              <span>Household</span>
-              <strong>{account?.householdName}</strong>
-            </div>
-          ) : (
-            <label>
-              <span>Household name</span>
-              <input
-                ref={householdNameRef}
-                autoComplete="organization"
-                aria-describedby={invalidField === 'household' ? 'auth-error' : undefined}
-                aria-invalid={invalidField === 'household'}
-                name="householdName"
-                required
-                value={form.householdName}
-                onChange={(event) =>
-                  onFormChange({ householdName: event.target.value })
-                }
-              />
-            </label>
-          )}
-
-          <label>
-            <span>Email</span>
-            <input
-              ref={emailRef}
-              autoComplete="email"
-              aria-describedby={invalidField === 'email' ? 'auth-error' : undefined}
-              aria-invalid={invalidField === 'email'}
-              name="email"
-              required
-              spellCheck={false}
-              type="email"
-              value={form.email}
-              onChange={(event) => onFormChange({ email: event.target.value })}
-            />
-          </label>
-
-          <label>
-            <span>Passcode</span>
-            <input
-              ref={passcodeRef}
-              autoComplete={isSignIn ? 'current-password' : 'new-password'}
-              aria-describedby={invalidField === 'passcode' ? 'auth-error' : undefined}
-              aria-invalid={invalidField === 'passcode'}
-              minLength={6}
-              name="passcode"
-              required
-              type="password"
-              value={form.passcode}
-              onChange={(event) =>
-                onFormChange({ passcode: event.target.value })
-              }
-            />
-          </label>
-
-          {error ? (
-            <p className="auth-error" id="auth-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          <button type="submit">
-            {isSignIn ? 'Sign in' : 'Create account'}
-          </button>
-        </form>
-      </section>
-    </main>
-  )
-}
-
 interface InsightCard {
   label: string
   value: string
@@ -1338,6 +1087,8 @@ interface SchedulePanelProps {
   activeBlock: ScheduleBlock | undefined
   nowMinutes: number
   schedule: ScheduleBlock[]
+  onSave: (block: ScheduleBlock) => string | null
+  onRemove: (blockId: string) => void
 }
 
 function SchedulePanel({
@@ -1345,16 +1096,56 @@ function SchedulePanel({
   activeBlock,
   nowMinutes,
   schedule,
+  onSave,
+  onRemove,
 }: SchedulePanelProps) {
+  const [editing, setEditing] = useState<ScheduleBlock | null>(null)
+  const [label, setLabel] = useState('')
+  const [start, setStart] = useState('09:00')
+  const [end, setEnd] = useState('09:30')
+  const [fixed, setFixed] = useState(false)
+  const [error, setError] = useState('')
+  const clearEditor = () => { setEditing(null); setLabel(''); setError(''); setFixed(false) }
+  const save = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    try {
+      const message = onSave({
+        ...editing,
+        id: editing?.id ?? createLocalId('block'),
+        label,
+        startMinutes: toMinutes(start),
+        endMinutes: toMinutes(end),
+        type: fixed ? 'fixed' : 'open',
+        assignedActivityId: fixed ? undefined : editing?.assignedActivityId,
+        locked: fixed,
+        status: editing?.status ?? 'planned',
+      })
+      if (message) setError(message)
+      else clearEditor()
+    } catch {
+      setError('Enter a valid start and end time.')
+    }
+  }
   return (
-    <section className="schedule-panel" id="schedule" aria-label="Today schedule">
+    <section className="schedule-panel" id="schedule" tabIndex={-1} aria-label="Daily routine template">
       <div className="section-heading compact">
         <div>
-          <p className="eyebrow">Schedule</p>
+          <p className="eyebrow">Daily routine template</p>
           <h2>{formatTime(nowMinutes)}</h2>
         </div>
       </div>
 
+      <p>This is a reusable daily template on this device, not a dated calendar. Blocks do not send reminders or sync to a calendar.</p>
+      <form onSubmit={save} className="routine-editor" aria-label="Schedule editor">
+        <label className="field"><span>Block name</span><input required maxLength={100} value={label} onChange={(event) => setLabel(event.target.value)} /></label>
+        <label className="field"><span>Start time</span><input required type="time" value={start} onChange={(event) => setStart(event.target.value)} /></label>
+        <label className="field"><span>End time</span><input required type="time" value={end} onChange={(event) => setEnd(event.target.value)} /></label>
+        <label><input type="checkbox" checked={fixed} onChange={(event) => setFixed(event.target.checked)} /> Fixed commitment (keep activity suggestions out)</label>
+        <button type="submit">{editing ? 'Save block changes' : 'Add schedule block'}</button>
+        {editing ? <button type="button" className="secondary" onClick={clearEditor}>Cancel editing</button> : null}
+        {error ? <p role="alert">{error}</p> : null}
+      </form>
+      {!schedule.length ? <p>No schedule blocks yet. Add your first routine above.</p> : null}
       <ol className="timeline">
         {schedule.map((block) => {
           const assignedActivity = block.assignedActivityId
@@ -1372,6 +1163,10 @@ function SchedulePanel({
               </span>
               <strong>{block.label}</strong>
               <span>{assignedActivity?.title ?? block.status}</span>
+              <div className="action-row">
+                <button type="button" className="secondary" aria-label={`Edit ${block.label}`} onClick={() => { setEditing(block); setLabel(block.label); setStart(timeInput(block.startMinutes)); setEnd(timeInput(block.endMinutes)); setFixed(block.locked); setError('') }}>Edit</button>
+                <button type="button" className="secondary" aria-label={`Remove ${block.label}`} onClick={() => { if (window.confirm(`Remove “${block.label}” from this routine?`)) { onRemove(block.id); if (editing?.id === block.id) clearEditor() } }}>Remove</button>
+              </div>
             </li>
           )
         })}
@@ -1780,17 +1575,21 @@ function createLocalId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.round(Math.random() * 100000)}`
 }
 
-function loadInitialAuth(storage: StorageLike | undefined): AuthState {
-  const account = loadAccount(storage)
-
-  return {
-    account,
-    session: loadSession(storage, account),
+function getBrowserStorage(): StorageLike | undefined {
+  try {
+    return typeof window === 'undefined' ? undefined : window.localStorage
+  } catch {
+    return undefined
   }
 }
 
-function getBrowserStorage(): StorageLike | undefined {
-  return typeof window === 'undefined' ? undefined : window.localStorage
+function currentMinutes(): number {
+  const now = new Date()
+  return now.getHours() * 60 + now.getMinutes()
+}
+
+function timeInput(minutes: number): string {
+  return `${Math.floor(minutes / 60).toString().padStart(2, '0')}:${(minutes % 60).toString().padStart(2, '0')}`
 }
 
 export default App
