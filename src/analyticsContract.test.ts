@@ -1,22 +1,15 @@
 import { describe, expect, it } from 'vitest'
-
+import { runInNewContext } from 'node:vm'
 import analyticsJs from '../public/analytics.js?raw'
 import indexHtml from '../index.html?raw'
 
-describe('public analytics contract', () => {
-  it('loads the same-origin analytics script from the app shell', () => {
-    expect(indexHtml).toContain('<script src="/analytics.js" defer></script>')
+describe('private parent planner network boundary', () => {
+  it('keeps third-party scripts and tracking loaders out of the planner shell', () => {
+    expect(indexHtml).not.toMatch(/analytics\.js|googletagmanager|google-analytics|adsbygoogle|googlesyndication/)
+    expect(indexHtml).toContain('content="no-referrer"')
   })
-
-  it('keeps GA4 page measurement production-only and data-minimal', () => {
-    expect(analyticsJs).toContain('G-2VT1V5192S')
-    expect(analyticsJs).toContain('window.location.protocol !== "https:"')
-    expect(analyticsJs).toContain('www.googletagmanager.com/gtag/js')
-    expect(analyticsJs).toContain('window.gtag("config", measurementId')
-    expect(analyticsJs).toContain('allow_google_signals: false')
-    expect(analyticsJs).toContain('allow_ad_personalization_signals: false')
-    expect(analyticsJs).not.toMatch(
-      /localStorage|sessionStorage|household|schedule|feedback|profile|planner/i,
-    )
+  it('leaves the legacy cached analytics URL inert without touching browser state', () => {
+    const browser = new Proxy({}, { get() { throw new Error('Unexpected browser access') } })
+    expect(() => runInNewContext(analyticsJs, { window: browser, document: browser })).not.toThrow()
   })
 })
