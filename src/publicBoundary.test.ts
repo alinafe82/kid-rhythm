@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { runInNewContext } from 'node:vm'
 import { readFileSync, existsSync } from 'node:fs'
 import worker from '../public/sw.js?raw'
+import deployment from '../vercel.json'
 
 function offlineWorker() {
   const handlers: Record<string, (event: unknown) => void> = {}
@@ -17,6 +18,23 @@ function offlineWorker() {
 }
 
 describe('public website and private planner boundary', () => {
+  it('routes the landing and both planner entry forms before filesystem lookup', () => {
+    const filesystem = deployment.routes.findIndex(route => 'handle' in route && route.handle === 'filesystem')
+    expect(filesystem).toBeGreaterThan(0)
+    const destination = (path: string) => deployment.routes.slice(0, filesystem).find(route => 'dest' in route && 'src' in route && new RegExp(route.src!).test(path))?.dest
+    expect(destination('/')).toBe('/landing.html')
+    for (const path of ['/app', '/app/', '/app/schedule']) expect(destination(path)).toBe('/index.html')
+    for (const path of ['/privacy.html', '/guides/morning-routine.html', '/assets/main.js', '/application', '/missing']) expect(destination(path)).toBeUndefined()
+  })
+  it('continues routing after applying the full restrictive security headers', () => {
+    const route = deployment.routes[0]
+    expect(route.continue).toBe(true)
+    expect(route.headers).toMatchObject({
+      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+      'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), browsing-topics=()',
+    })
+  })
   it('falls back to the planner shell only for a planner navigation', async () => {
     const { handlers } = offlineWorker()
     let result: Promise<Response> | undefined
