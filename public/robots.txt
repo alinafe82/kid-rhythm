@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kid-rhythm.vercel.app/sitemap.xml
