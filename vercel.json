@@ -15,12 +15,27 @@
       "continue": true
     },
     {
+      "src": "^/(?:app(?:/.*)?|index\\.html)$",
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow"
+      },
+      "continue": true
+    },
+    {
       "src": "^/$",
       "dest": "/landing.html"
     },
     {
       "src": "^/app(?:/.*)?$",
       "dest": "/index.html"
+    },
+    {
+      "src": "^/privacy/?$",
+      "dest": "/privacy.html"
+    },
+    {
+      "src": "^/contact/?$",
+      "dest": "/contact.html"
     },
     {
       "handle": "filesystem"
